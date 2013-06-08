@@ -1,0 +1,16 @@
+frame_list.py
+analyser_custom_settings.py
+connection.txt
+log_messages.txt
+*.pyc
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.csv
+*.hdf5
+*.HDF5
+*.dat
+*.DAT
+*.lfl
+*.LFL
