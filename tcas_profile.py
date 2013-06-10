@@ -341,6 +341,7 @@ class TCASRAStandardResponse(DerivedParameterNode):
             required_fpm_array[ra.slice] = required_fpm  
             #mytitle = 'TCAS response. Cmb Ctl: '+tcas_ctl.array[ra.start_edge] + ' Up: '+ tcas_up.array[ra.start_edge] + ' Down: '+tcas_down.array[ra.start_edge]
             #aplot({'vertspd':vertspd.array, 'tcas100':tcas_ctl.array*100-25, 'required fpm':required_fpm}, title=mytitle)
+            """    
             plt = ra_plot(ra, {'vertspd':vertspd.array, 'required fpm':required_fpm_array}, 
                     tcas_ctl.array, tcas_up.array, tcas_down.array, 
                     tcas_vert.array, tcas_sens.array, filename, orig, dest)  
@@ -351,7 +352,7 @@ class TCASRAStandardResponse(DerivedParameterNode):
             fname = filename.value.replace('.hdf5', '.png')
             plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
             plt.close()
-
+            """    
 
 def deltas(myarray):
     '''returns changes in value, same dimension as original array. 
@@ -537,6 +538,23 @@ def test_sql_jfk():
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return files_to_process
 
+def ra_pkl_check():
+   '''verify tcas profile using flights from updated LFL and load from pkl'''   
+   query="""select distinct f.file_path 
+                from (select * from fds_flight_record where file_path like '%2012-07-11%' and analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
+                join 
+                 fds_kpv kpv 
+                  on kpv.base_file_path=f.base_file_path
+                 where f.base_file_path is not null 
+                   and  f.base_file_path like '%cleansed%' 
+                   and  (kpv.name='TCAS RA Warning Duration'
+                         and kpv.value between 2.5 and 120.0                   
+                       )  --ignore excessively long warnings
+                   and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
+                   --and rownum<=2"""
+   files_to_process = fds_oracle.flight_record_filepaths(query)
+   return files_to_process
+
 
 def test_ra_flights():
     '''look only at flights with an RA'''
@@ -557,9 +575,9 @@ def test_ra_flights():
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = test_ra_flights()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
-    COMMENT   = 'updated paths'
-    LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    FILES_TO_PROCESS = ra_pkl_check() #test_ra_flights()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
+    COMMENT   = 'loaded from pkl and used updated lfl'
+    LOG_LEVEL = 'DEBUG'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     profile_name = os.path.basename(__file__).replace('.py','') #helper.get_short_profile_name(__file__)   # profile name = the name of this file

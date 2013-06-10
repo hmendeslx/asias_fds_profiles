@@ -218,11 +218,24 @@ def test_kpv_range():
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return files_to_process
     
+def pkl_check():
+   '''verify tcas profile using flights from updated LFL and load from pkl'''   
+   query="""select distinct f.file_path 
+                from (select * from fds_flight_record where file_path like '%2012-07-11%' and analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
+                join 
+                 fds_kpv kpv 
+                  on kpv.base_file_path=f.base_file_path
+                 where f.base_file_path is not null 
+                   and  f.base_file_path like '%cleansed%' 
+                   and orig_icao='KJFK' and dest_icao in ('KFLL')
+                   --and rownum < 10"""
+   files_to_process = fds_oracle.flight_record_filepaths(query)
+   return files_to_process
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = test_sql_jfk() #test_kpv_range()  #test10()  #test_kpv_range() # #tiny_test()
-    COMMENT   = 'updated paths'
+    FILES_TO_PROCESS = pkl_check()   #test_sql_jfk() #test_kpv_range()  #test10()  #test_kpv_range() # #tiny_test()
+    COMMENT   = 'lfl and pkl load check'
     LOG_LEVEL = 'DEBUG'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
