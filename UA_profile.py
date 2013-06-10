@@ -178,20 +178,26 @@ class AirspeedReferenceVref(DerivedParameterNode):
                 vspeed_table = vspeed_class()
                 for approach in approaches:
                     _slice = approach.slice
+                    '''TODO: Only uses max Vref setting, doesn't account for late config changes'''
                     index = np.ma.argmax(setting_param.array[_slice])
                     setting = setting_param.array[_slice][index]
                     weight = repaired_gw[_slice][index] if gw is not None else None
-                    if is_index_within_slice(touchdowns.get_last().index, _slice) \
-                       or setting in vspeed_table.vref_settings:
-                        # Landing or approach with setting in vspeed table:
+                    if setting in vspeed_table.vref_settings:
+                       ##and is_index_within_slice(touchdowns.get_last().index, _slice):
+                        # setting in vspeed table:
                         vspeed = vspeed_table.vref(setting, weight)
                     else:
-                        # No landing and max setting not in vspeed table:
-                        if setting_param.name == 'Flap':
-                            setting = max(get_flap_map(series.value, family.value))
-                        else:
-                            setting = max(get_conf_map(series.value, family.value).keys())
-                            vspeed = vspeed_table.vref(setting, weight)
+                        ''' Do not like the default of using max Vref for go arounds... '''
+                        ## No landing and max setting not in vspeed table:
+                        #if setting_param.name == 'Flap':
+                            #setting = max(get_flap_map(series.value, family.value))
+                        #else:
+                            #setting = max(get_conf_map(series.value, family.value).keys())
+                            #vspeed = vspeed_table.vref(setting, weight)
+                        self.warning("'Airspeed Reference' will be fully masked "
+                                 "because Vref lookup table does not have corresponding values.")
+                        return
+ 
                     self.array[_slice] = vspeed
                             
                             
@@ -208,10 +214,57 @@ class AirspeedRelativeMax1000to500ftHAT (KeyPointValueNode):
                approaches=S('Approach And Landing')):
         
         for app in approaches:          
-            
             cas_vref=cas.array-vref.array
             self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),max_value)
+            
+class AirspeedRelativeMin1000to500ftHAT (KeyPointValueNode):
+    '''CAS-Vref 1000 to 500 ft HAT'''
+    name = 'Airspeed Relative 1000 to 500 ft HAT Min'
+    units = 'kts'
+
+    def derive(self,
+               vref=P('Vref (Recorded then Lookup)'),
+               cas=P('Airspeed'),
+               altitude=P('Altitude AAL'),
+               touchdowns=KTI('Touchdown'),
+               approaches=S('Approach And Landing')):
+    
+        for app in approaches:          
+            cas_vref=cas.array-vref.array
+            self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),min_value)
+            
+class AirspeedRelativeMax500to50ftHAT (KeyPointValueNode):
+    '''CAS-Vref 500 to 50 ft HAT'''
+    name = 'Airspeed Relative 500 to 50 ft HAT Max'
+    units = 'kts'
+    
+    def derive(self,
+               vref=P('Vref (Recorded then Lookup)'),
+               cas=P('Airspeed'),
+               altitude=P('Altitude AAL'),
+               touchdowns=KTI('Touchdown'),
+               approaches=S('Approach And Landing')):
         
+        for app in approaches:          
+            cas_vref=cas.array-vref.array
+            self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),max_value)
+            
+class AirspeedRelativeMin500to50ftHAT (KeyPointValueNode):
+    '''CAS-Vref 500 to 50 ft HAT'''
+    name = 'Airspeed Relative 500 to 50 ft HAT Min'
+    units = 'kts'
+
+    def derive(self,
+               vref=P('Vref (Recorded then Lookup)'),
+               cas=P('Airspeed'),
+               altitude=P('Altitude AAL'),
+               touchdowns=KTI('Touchdown'),
+               approaches=S('Approach And Landing')):
+    
+        for app in approaches:          
+            cas_vref=cas.array-vref.array
+            self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),min_value)
+            
 class AltitudeAtLastGearDownBeforeTouchdown(KeyPointValueNode):
     '''
     '''
@@ -295,7 +348,7 @@ if __name__=='__main__':
     ###CONFIGURATION options###################################################
     FILES_TO_PROCESS = test_sql_jfk() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test()
     COMMENT   = 'lfl and pkl load check'
-    LOG_LEVEL = 'DEBUG'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     profile_name = os.path.basename(__file__).replace('.py','') #helper.get_short_profile_name(__file__)   # profile name = the name of this file
