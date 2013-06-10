@@ -221,7 +221,7 @@ def test_kpv_range():
 def pkl_check():
    '''verify tcas profile using flights from updated LFL and load from pkl'''   
    query="""select distinct f.file_path 
-                from (select * from fds_flight_record where file_path like '%2012-07-11%' and analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
+                from (select * from fds_flight_record where analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
                 join 
                  fds_kpv kpv 
                   on kpv.base_file_path=f.base_file_path

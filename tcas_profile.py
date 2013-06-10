@@ -120,15 +120,16 @@ def tcas_vertical_speed_initial_up( ra_slice, tcas_up_initial,
     upcmd = tcas_up_initial
     if upcmd=='Climb':
         return 1500  # climb at least 1500 fpm 
-    elif upcmd=="Don't Descent 500":
+    elif upcmd=="Don't Descend 500":
         return -500  # don't descend more than 500 fpm
-    elif upcmd=="Don't Descent 1000":
+    elif upcmd=="Don't Descend 1000":
         return -1000
-    elif upcmd=="Don't Descent 2000":
+    elif upcmd=="Don't Descend 2000":
         return -2000
     elif upcmd=="Preventative":
         return vertical_speed_initial  #don't descend more than the current rate
     else: 
+        print 'Other initial up: ', tcas_up_initial
         return None
         
 
@@ -139,7 +140,7 @@ def tcas_vertical_speed_initial_down( ra_slice, tcas_down_initial,
         if TCAS combined control is Down Advisory
     '''
     downcmd = tcas_down_initial
-    if downcmd=='Descent':
+    if downcmd=='Descend':
         return -1500  #descent at least 1500 fpm 
     elif downcmd=="Don't Climb 500":
         return 500 #don't descend more than 500 fpm
@@ -148,6 +149,7 @@ def tcas_vertical_speed_initial_down( ra_slice, tcas_down_initial,
     elif downcmd=="Don'Climb 2000":
         return 2000
     else: 
+        print 'Other initial down: ', tcas_down_initial
         return None
 
     
@@ -220,7 +222,7 @@ def ra_plot(ra_section,     array_dict,
     
     def disp_state(st):
         st = st.replace('Descent Corrective','Desc Corr.')
-        st = st.replace('Descent ','Desc>')
+        st = st.replace('Descend ','Desc>')
         st = st.replace('Descent','Descend')
         st = st.replace('Advisory','Advzy')
         st = st.replace("Don'Cl","Don't Cl")
@@ -318,10 +320,13 @@ class TCASRAStandardResponse(DerivedParameterNode):
                                                 vertspd.array[ra.start_edge]
                                                 )
                     print 'UP required:', required_fpm 
-                    #NEXT : loop over ra period.  increment speed until we hit target, then level off
-                    print 'UP required:', required_fpm
-                    seconds_for_change = required_fpm / standard_vert_accel
+                    if standard_vert_accel and required_fpm :
+                        seconds_for_change = required_fpm / standard_vert_accel
+                    else:
+                        pdb.set_trace()
+
                     seconds_of_accel = min(seconds_for_change, post_response_duration)
+                    #NEXT : loop over ra period.  increment speed until we hit target, then level off
                     #seconds_at_target_fpm
                     #if post_response_duration < seconds_for_change:
                     #    pass #we don't have enough time to hit the target, just accel for
@@ -332,7 +337,10 @@ class TCASRAStandardResponse(DerivedParameterNode):
                                                 vertspd.array[ra.start_edge]
                                                 )
                     print 'DOWN required:', required_fpm 
-                    seconds_for_change = required_fpm / standard_vert_accel
+                    if standard_vert_accel and required_fpm :
+                        seconds_for_change = required_fpm / standard_vert_accel
+                    else:
+                        pdb.set_trace()
                 
                 else:
                     required_fpm = 0
@@ -341,7 +349,6 @@ class TCASRAStandardResponse(DerivedParameterNode):
             required_fpm_array[ra.slice] = required_fpm  
             #mytitle = 'TCAS response. Cmb Ctl: '+tcas_ctl.array[ra.start_edge] + ' Up: '+ tcas_up.array[ra.start_edge] + ' Down: '+tcas_down.array[ra.start_edge]
             #aplot({'vertspd':vertspd.array, 'tcas100':tcas_ctl.array*100-25, 'required fpm':required_fpm}, title=mytitle)
-            """    
             plt = ra_plot(ra, {'vertspd':vertspd.array, 'required fpm':required_fpm_array}, 
                     tcas_ctl.array, tcas_up.array, tcas_down.array, 
                     tcas_vert.array, tcas_sens.array, filename, orig, dest)  
@@ -352,7 +359,7 @@ class TCASRAStandardResponse(DerivedParameterNode):
             fname = filename.value.replace('.hdf5', '.png')
             plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
             plt.close()
-            """    
+
 
 def deltas(myarray):
     '''returns changes in value, same dimension as original array. 
@@ -541,7 +548,7 @@ def test_sql_jfk():
 def ra_pkl_check():
    '''verify tcas profile using flights from updated LFL and load from pkl'''   
    query="""select distinct f.file_path 
-                from (select * from fds_flight_record where file_path like '%2012-07-11%' and analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
+                from (select * from fds_flight_record where analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
                 join 
                  fds_kpv kpv 
                   on kpv.base_file_path=f.base_file_path
