@@ -194,7 +194,7 @@ def test_sql_jfk():
     query = """select file_path from fds_flight_record 
                  where 
                     orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
-                    and rownum < 3"""
+                    """
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return files_to_process
 
@@ -234,9 +234,9 @@ def pkl_check():
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = pkl_check()   #test_sql_jfk() #test_kpv_range()  #test10()  #test_kpv_range() # #tiny_test()
+    FILES_TO_PROCESS = test_sql_jfk()  # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test()
     COMMENT   = 'lfl and pkl load check'
-    LOG_LEVEL = 'DEBUG'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     profile_name = os.path.basename(__file__).replace('.py','') #helper.get_short_profile_name(__file__)   # profile name = the name of this file
