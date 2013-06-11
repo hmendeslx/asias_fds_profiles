@@ -111,9 +111,7 @@ class TCASRAStart(KeyTimeInstanceNode):
 ### TODO sort out Drop Track and Altitude 
 ### TODO check if Climb really means 1500 fpm regardless of circumstance
 ### TODO what if TCAS Vertical Control is Maintain; How does Vertical Control play with the others?
-def tcas_vertical_speed_initial_up( ra_slice, tcas_up_initial, 
-                                    vertical_speed_initial
-                                   ):
+def tcas_vertical_speed_initial_up(tcas_up_initial, vert_speed_initial):
     '''determine the change in vertical speed initially commanded  by a tcas ra 
             if TCAS combined control is Up Advisory
     '''
@@ -126,16 +124,12 @@ def tcas_vertical_speed_initial_up( ra_slice, tcas_up_initial,
         return -1000
     elif upcmd=="Don't Descend 2000":
         return -2000
-    elif upcmd=="Preventative":
-        return vertical_speed_initial  #don't descend more than the current rate
-    else: 
+    else: # 'Preventative' state seems questionable
         print 'Other initial up: ', tcas_up_initial
         return None
         
 
-def tcas_vertical_speed_initial_down( ra_slice, tcas_down_initial, 
-                                    vertical_speed_initial
-                                   ):
+def tcas_vertical_speed_initial_down(tcas_down_initial, vert_speed_initial):
     '''determine the change in vertical speed initially commanded  by a tcas ra
         if TCAS combined control is Down Advisory
     '''
@@ -144,9 +138,9 @@ def tcas_vertical_speed_initial_down( ra_slice, tcas_down_initial,
         return -1500  #descent at least 1500 fpm 
     elif downcmd=="Don't Climb 500":
         return 500 #don't descend more than 500 fpm
-    elif downcmd=="Don'Climb 1000":
+    elif downcmd=="Don't Climb 1000":
         return 1000
-    elif downcmd=="Don'Climb 2000":
+    elif downcmd=="Don't Climb 2000":
         return 2000
     else: 
         print 'Other initial down: ', tcas_down_initial
@@ -223,9 +217,9 @@ def ra_plot(ra_section,     array_dict,
     def disp_state(st):
         st = st.replace('Descent Corrective','Desc Corr.')
         st = st.replace('Descend ','Desc>')
-        st = st.replace('Descent','Descend')
+        #st = st.replace('Descent','Descend')
         st = st.replace('Advisory','Advzy')
-        st = st.replace("Don'Cl","Don't Cl")
+        #st = st.replace("Don'Cl","Don't Cl")
         st = st.replace("Don't Climb ","Don't Climb>")
         return st
 
@@ -270,8 +264,8 @@ def ra_plot(ra_section,     array_dict,
     plt.title('TCAS Sensitivity Mode')
     
     plt.xlabel('time index')
-    xmin = max( ra_section.start_edge-30.0, 0)   
-    xmax = min( ra_section.stop_edge+30.0, len(vert_array)) 
+    xmin = max( ra_section.start_edge-15.0, 0)   
+    xmax = min( ra_section.stop_edge+15.0, len(vert_array)) 
     plt.xlim(xmin, xmax) 
     plt.suptitle('TCAS RA: '+filename.value + '\n  '+orig.value['code']['icao']+'-'+dest.value['code']['icao'])
     return plt
@@ -327,14 +321,14 @@ class TCASRAStandardResponse(DerivedParameterNode):
                 if ra_ctl_prev!=tcas_ctl.array[t] or up_prev!=tcas_up.array[t] or down_prev!=tcas_down.array[t]:
                         
                     if tcas_ctl.array[t] == 'Up Advisory Corrective':
-                        required_fpm = tcas_vertical_speed_initial_up( ra.slice, 
-                                                tcas_up.array[ra.start_edge], 
-                                                vertspd.array[ra.start_edge]
+                        required_fpm = tcas_vertical_speed_initial_up( 
+                                                tcas_up.array[t], 
+                                                vertspd.array[t]
                                                 )                            
                     elif tcas_ctl.array[t] == 'Down Advisory Corrective':
-                        required_fpm = tcas_vertical_speed_initial_down( ra.slice, 
-                                                tcas_down.array[ra.start_edge], 
-                                                vertspd.array[ra.start_edge]
+                        required_fpm = tcas_vertical_speed_initial_down(  
+                                                tcas_down.array[t], 
+                                                vertspd.array[t]
                                                 )
                     if tcas_vert.array[t]=='Reversal':                                                
                         lag_end = t + standard_response_lag_reversal
@@ -371,12 +365,13 @@ class TCASRAStandardResponse(DerivedParameterNode):
                           tcas_ctl.array, tcas_up.array, tcas_down.array, 
                           tcas_vert.array, tcas_sens.array, filename, orig, dest
                           )  
-            print 'Paused for plot review. Close plot window to continue.'
-            plt.show()            
-            plt.draw()
-            #fname = filename.value.replace('.hdf5', '.png')
-            #plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
+            #print 'Paused for plot review. Close plot window to continue.'
+            #plt.show()
             #plt.close()
+            plt.draw()
+            fname = filename.value.replace('.hdf5', '.png')
+            plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
+            
 
 
 def deltas(myarray):
