@@ -300,65 +300,83 @@ class TCASRAStandardResponse(DerivedParameterNode):
                      dest = A('FDR Landing Airport'),
               ):
                     
-        standard_vert_accel = 8.0  # ft/sec^2
+        response_states = ('response lag', 'acceleration', 'response completed')
+        standard_vert_accel   = 8.0 * 60            #  8 ft/sec^2, converted to ft/min^2
+        standard_vert_accel_reversal   = 11.2   # ft/sec^2
+        standard_response_lag = 5.0             # seconds
+        standard_response_lag_reversal =  2.5   # seconds
+        
         self.array = vertspd.array * 0 #make a copy, mask and zero out
-
         self.array.mask = True
+        required_fpm_array = vertspd.array * 0
+        
         for ra in ra_sections:                      
             print 'in sections'
-            #find corresponding raduration
-            #pdb.set_trace()
-            duration = ra.stop_edge-ra.start_edge
-            if duration<5.0:   #no response: vert speed does not change from starting value
-                self.array[ra] = vertspd[ra.start]
-            else:  #spd unchanged first five seconds, then ramps up as 8 ft/sec^2 to target
-                self.array[ra.start_edge:ra.start_edge+5] = vertspd.array[ra.start_edge]
-                post_response_duration = duration - 5.0
-                if tcas_ctl.array[ra.start_edge] == 'Up Advisory Corrective':
-                    required_fpm = tcas_vertical_speed_initial_up( ra.slice, 
+            #initialize response state
+            ra_ctl_prev     = tcas_ctl.array[ra.start_edge] # used to check if the command has changed
+            up_prev         = tcas_ctl.array[ra.start_edge] # used to check if the command has changed
+            down_prev       = tcas_ctl.array[ra.start_edge] # used to check if the command has changed
+            initial_vert_spd = vertspd.array[ra.start_edge]
+            std_vert_spd    = initial_vert_spd # current standard response vert speed in fpm
+            required_fpm    = None # nominal vertical speed in fpm required by the RA
+            lag_end         = ra.start_edge + standard_response_lag # time pilot response lag ends
+            acceleration    = standard_vert_accel
+                        
+            for t in range(int(ra.start_edge), int(ra.stop_edge)):               
+                # set required_fpm for initial ra or a change in command
+                if ra_ctl_prev!=tcas_ctl.array[t] or up_prev!=tcas_up.array[t] or down_prev!=tcas_down.array[t]:
+                        
+                    if tcas_ctl.array[t] == 'Up Advisory Corrective':
+                        required_fpm = tcas_vertical_speed_initial_up( ra.slice, 
                                                 tcas_up.array[ra.start_edge], 
                                                 vertspd.array[ra.start_edge]
-                                                )
-                    print 'UP required:', required_fpm 
-                    if standard_vert_accel and required_fpm :
-                        seconds_for_change = required_fpm / standard_vert_accel
-                    else:
-                        pdb.set_trace()
-
-                    seconds_of_accel = min(seconds_for_change, post_response_duration)
-                    #NEXT : loop over ra period.  increment speed until we hit target, then level off
-                    #seconds_at_target_fpm
-                    #if post_response_duration < seconds_for_change:
-                    #    pass #we don't have enough time to hit the target, just accel for
-
-                elif tcas_ctl.array[ra.start_edge] == 'Down Advisory Corrective':
-                    required_fpm = tcas_vertical_speed_initial_down( ra.slice, 
+                                                )                            
+                    elif tcas_ctl.array[t] == 'Down Advisory Corrective':
+                        required_fpm = tcas_vertical_speed_initial_down( ra.slice, 
                                                 tcas_down.array[ra.start_edge], 
                                                 vertspd.array[ra.start_edge]
                                                 )
-                    print 'DOWN required:', required_fpm 
-                    if standard_vert_accel and required_fpm :
-                        seconds_for_change = required_fpm / standard_vert_accel
-                    else:
-                        pdb.set_trace()
-                
-                else:
-                    required_fpm = 0
-                    print 'I am very CONFUSED by this RA!!!'
-            required_fpm_array = vertspd.array * 0
-            required_fpm_array[ra.slice] = required_fpm  
-            #mytitle = 'TCAS response. Cmb Ctl: '+tcas_ctl.array[ra.start_edge] + ' Up: '+ tcas_up.array[ra.start_edge] + ' Down: '+tcas_down.array[ra.start_edge]
-            #aplot({'vertspd':vertspd.array, 'tcas100':tcas_ctl.array*100-25, 'required fpm':required_fpm}, title=mytitle)
-            plt = ra_plot(ra, {'vertspd':vertspd.array, 'required fpm':required_fpm_array}, 
-                    tcas_ctl.array, tcas_up.array, tcas_down.array, 
-                    tcas_vert.array, tcas_sens.array, filename, orig, dest)  
+                    if tcas_vert.array[t]=='Reversal':                                                
+                        lag_end = t + standard_response_lag_reversal
+                        acceleration = standard_vert_accel_reversal                    
+                        initial_vertspd = std_vert_spd
 
-            #print 'Paused for plot review. Close plot window to continue.'
-            #plt.show()            
+                if required_fpm is None:
+                    print 'I am very CONFUSED by this RA!!!'                
+                    pdb.set_trace()                        
+                
+                if t<lag_end: # not responding yet
+                    self.array.data[t] = initial_vert_spd
+                    std_vert_spd
+                else:
+                    if tcas_ctl.array[t] == 'Down Advisory Corrective':
+                        if std_vert_spd>required_fpm: std_vert_spd -= acceleration
+                        if std_vert_spd<required_fpm: std_vert_spd = required_fpm #correct overshoot
+                    elif tcas_ctl.array[t] == 'Up Advisory Corrective':
+                        if std_vert_spd<required_fpm: std_vert_spd += acceleration
+                        if std_vert_spd>required_fpm: std_vert_spd = required_fpm #correct overshoot
+                    else: #better have a look
+                        print 'now what?'
+                        pdb.set_trace()
+                        
+                self.array.data[t] = std_vert_spd
+                self.array.mask[t] = False
+                required_fpm_array[t] = required_fpm
+                #end of loop    
+                ra_ctl_prev = tcas_ctl.array[t]
+                up_prev     = tcas_up.array[t] 
+                down_prev   = tcas_down.array[t]                
+                
+            plt = ra_plot(ra, {'vertspd':vertspd.array, 'required fpm':required_fpm_array, 'std response':self.array}, 
+                          tcas_ctl.array, tcas_up.array, tcas_down.array, 
+                          tcas_vert.array, tcas_sens.array, filename, orig, dest
+                          )  
+            print 'Paused for plot review. Close plot window to continue.'
+            plt.show()            
             plt.draw()
-            fname = filename.value.replace('.hdf5', '.png')
-            plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
-            plt.close()
+            #fname = filename.value.replace('.hdf5', '.png')
+            #plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
+            #plt.close()
 
 
 def deltas(myarray):
@@ -419,7 +437,7 @@ class TCASDownAdvisory(KeyPointValueNode):
             self.append(kpv)
             
 class TCASVerticalControl(KeyPointValueNode):
-    '''a simple KPV. start_datetime is used only to provide a dependency
+    '''
            Advisory is not one of the following types
            Crossing
            Reversal
