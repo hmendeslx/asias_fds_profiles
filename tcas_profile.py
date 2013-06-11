@@ -66,7 +66,6 @@ class TCASRASections(FlightPhaseNode):
     ''' a phase, derived from other phases.  S()=section=phase'''
     name = 'TCAS RA Sections'
     def derive(self, tcas=M('TCAS Combined Control'), off=KTI('Liftoff') ):
-        print 'HELLO from TCAS RA Sections'
         ras_local = tcas.array.any_of('Drop Track',
                                       'Altitude Lost',
                                       'Up Advisory Corrective',
@@ -81,10 +80,9 @@ class TCASRASections(FlightPhaseNode):
                 print 'ra section', ras_slices
                 for ra_slice in ras_slices:                    
                     duration = ra_slice.stop-ra_slice.start                     
-                    #if 3.0 <= duration < 120.0:
-                    print ' ra section', ra_slice
-                    #pdb.set_trace()
-                    self.create_phase( ra_slice )    
+                    if 3.0 <= duration < 120.0:
+                        print ' ra section', ra_slice
+                        self.create_phase( ra_slice )    
         return
 
 
@@ -111,11 +109,11 @@ class TCASRAStart(KeyTimeInstanceNode):
 ### TODO sort out Drop Track and Altitude 
 ### TODO check if Climb really means 1500 fpm regardless of circumstance
 ### TODO what if TCAS Vertical Control is Maintain; How does Vertical Control play with the others?
-def tcas_vertical_speed_initial_up(tcas_up_initial, vert_speed_initial):
-    '''determine the change in vertical speed initially commanded  by a tcas ra 
+def tcas_vertical_speed_up(tcas_up, vert_speed):
+    '''determine the change in vertical speed commanded  by a tcas ra 
             if TCAS combined control is Up Advisory
     '''
-    upcmd = tcas_up_initial
+    upcmd = tcas_up
     if upcmd=='Climb':
         return 1500  # climb at least 1500 fpm 
     elif upcmd=="Don't Descend 500":
@@ -125,15 +123,15 @@ def tcas_vertical_speed_initial_up(tcas_up_initial, vert_speed_initial):
     elif upcmd=="Don't Descend 2000":
         return -2000
     else: # 'Preventative' state seems questionable
-        print 'Other initial up: ', tcas_up_initial
+        print 'Other initial up: ', tcas_up
         return None
         
 
-def tcas_vertical_speed_initial_down(tcas_down_initial, vert_speed_initial):
-    '''determine the change in vertical speed initially commanded  by a tcas ra
+def tcas_vertical_speed_down(tcas_down, vert_speed):
+    '''determine the change in vertical speed commanded  by a tcas ra
         if TCAS combined control is Down Advisory
     '''
-    downcmd = tcas_down_initial
+    downcmd = tcas_down
     if downcmd=='Descend':
         return -1500  #descent at least 1500 fpm 
     elif downcmd=="Don't Climb 500":
@@ -143,7 +141,7 @@ def tcas_vertical_speed_initial_down(tcas_down_initial, vert_speed_initial):
     elif downcmd=="Don't Climb 2000":
         return 2000
     else: 
-        print 'Other initial down: ', tcas_down_initial
+        print 'Other initial down: ', tcas_down
         return None
 
     
@@ -272,6 +270,8 @@ def ra_plot(ra_section,     array_dict,
     
     
 ### TODO deal with reversals later
+### TODO if Vertical Control = Increase then add 1000 fpm to climb/desc
+### TODO Climb Corrective, Descend Corrective --- = Level Off?
 class TCASRAStandardResponse(DerivedParameterNode):
     '''nominal pilot response -- a vertical speed curve
         source for response time and acceleration:
@@ -326,19 +326,19 @@ class TCASRAStandardResponse(DerivedParameterNode):
                 if ra_ctl_prev!=tcas_ctl.array[t] or up_prev!=tcas_up.array[t] or down_prev!=tcas_down.array[t]:
                         
                     if tcas_ctl.array[t] == 'Up Advisory Corrective':
-                        required_fpm = tcas_vertical_speed_initial_up( 
+                        required_fpm = tcas_vertical_speed_up( 
                                                 tcas_up.array[t], 
                                                 vertspd.array[t]
                                                 )                            
                     elif tcas_ctl.array[t] == 'Down Advisory Corrective':
-                        required_fpm = tcas_vertical_speed_initial_down(  
+                        required_fpm = tcas_vertical_speed_down(  
                                                 tcas_down.array[t], 
                                                 vertspd.array[t]
                                                 )
                     if tcas_vert.array[t]=='Reversal':                                                
                         lag_end = t + standard_response_lag_reversal
                         acceleration = standard_vert_accel_reversal                    
-                        initial_vertspd = std_vert_spd
+                        initial_vert_spd = std_vert_spd
 
                 if required_fpm is None:
                     print 'I am very CONFUSED by this RA!!!'                
@@ -489,7 +489,7 @@ class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
     def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra=KTI('TCAS RA Start')):
         self.create_kpvs_at_ktis(tcas_sens.array, ra)
 
-"""
+#"""
 class TCASSensitivity(KeyPointValueNode):
     name = 'TCAS Pilot Sensitivity Mode'
     def derive(self, tcas_sens=P('TCAS Sensitivity Level'), airs=S('Airborne') ):
@@ -500,7 +500,7 @@ class TCASSensitivity(KeyPointValueNode):
             _name = 'TCAS Sensitivity|' + tcas_sens.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
-"""
+#"""
 
 class VerticalSpeedAtTCASRAStart(KeyPointValueNode):
     units = 'fpm'
