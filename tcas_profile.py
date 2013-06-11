@@ -274,6 +274,11 @@ def ra_plot(ra_section,     array_dict,
 ### TODO deal with reversals later
 class TCASRAStandardResponse(DerivedParameterNode):
     '''nominal pilot response -- a vertical speed curve
+        source for response time and acceleration:
+            "Introduction to TCAS II version 7.1" 
+               Federal Aviation Administration, 
+               February 28, 2011.  p. 39
+            
         initial response time = 5 sec    (2.5 sec for reversal)
         acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)
         maintain advised fpm until end
