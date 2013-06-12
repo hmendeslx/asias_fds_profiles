@@ -22,6 +22,7 @@ TCAS Elements
                                   base: 'TCAS RA Initial Reaction Strength' (positive if alt change consistent with RA)
   
 For event rates: build a simple KPV or KTI to just check pre-req and count reference flights.
+NOTE: we are assuming 1 Hz TCAS Combined Control
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
 import pdb
@@ -63,24 +64,19 @@ class SimpleKTI(KeyTimeInstanceNode):
 
 
 class TCASRASections(FlightPhaseNode):
-    ''' a phase, derived from other phases.  S()=section=phase'''
+    '''TCAS RA sections that pass quality filtering '''
     name = 'TCAS RA Sections'
     def derive(self, tcas=M('TCAS Combined Control'), off=KTI('Liftoff') ):
-        ras_local = tcas.array.any_of('Drop Track',
-                                      'Altitude Lost',
-                                      'Up Advisory Corrective',
-                                      'Down Advisory Corrective')                    
+        ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
         ras_slices = library.runs_of_ones(ras_local)
         if ras_slices:
             # require RA to start at least 10 seconds after liftoff 
-            # also ignore flights with lots of cycling RA alerts
             is_post_liftoff =  (ras_slices[0].start - off.get_first().index) > 10 
-            #is_too_long = 
-            if is_post_liftoff and len(ras_slices)<5:
+            if is_post_liftoff and len(ras_slices)<5: #ignore cycling
                 print 'ra section', ras_slices
                 for ra_slice in ras_slices:                    
                     duration = ra_slice.stop-ra_slice.start                     
-                    if 3.0 <= duration < 120.0:
+                    if 3.0 <= duration < 120.0: #ignore if too short to do anything
                         print ' ra section', ra_slice
                         self.create_phase( ra_slice )    
         return
@@ -88,28 +84,12 @@ class TCASRASections(FlightPhaseNode):
 
 class TCASRAStart(KeyTimeInstanceNode):
     name = 'TCAS RA Start'
-    def derive(self, tcas=M('TCAS Combined Control'), off=KTI('Liftoff') ):
-        ras_local = tcas.array.any_of('Drop Track',
-                                      'Altitude Lost',
-                                      'Up Advisory Corrective',
-                                      'Down Advisory Corrective')                    
-        ras_slices = library.runs_of_ones(ras_local)
-        #pdb.set_trace()
-        if ras_slices:
-            # require RA to start at least 10 seconds after liftoff 
-            # also ignore flights with lots of cycling RA alerts
-            is_post_liftoff =  (ras_slices[0].start - off.get_first().index) > 10 
-            #is_too_long = 
-            if is_post_liftoff and len(ras_slices)<5:
-                for ra_slice in ras_slices:
-                    duration = ra_slice.start-ra_slice.stop 
-                    if 3.0 <= duration < 120.0:
-                        self.create_kti(ra_slice.start)
+    def derive(self, ra_sections=S('TCAS RA Sections')):
+        for s in ra_sections:
+            self.create_kti(s.start_edge)
 
-### TODO sort out Drop Track and Altitude 
-### TODO check if Climb really means 1500 fpm regardless of circumstance
-### TODO what if TCAS Vertical Control is Maintain; How does Vertical Control play with the others?
-def tcas_vertical_speed_up(tcas_up, vert_speed):
+
+def tcas_vert_spd_up(tcas_up, vert_speed):
     '''determine the change in vertical speed commanded  by a tcas ra 
             if TCAS combined control is Up Advisory
     '''
@@ -127,7 +107,7 @@ def tcas_vertical_speed_up(tcas_up, vert_speed):
         return None
         
 
-def tcas_vertical_speed_down(tcas_down, vert_speed):
+def tcas_vert_spd_down(tcas_down, vert_speed):
     '''determine the change in vertical speed commanded  by a tcas ra
         if TCAS combined control is Down Advisory
     '''
@@ -144,35 +124,19 @@ def tcas_vertical_speed_down(tcas_down, vert_speed):
         print 'Other initial down: ', tcas_down
         return None
 
-    
-def aplot(array_dict={}, title='array plot', grid=True, legend=True):
-    '''plot a dictionary of up to four arrays, with legend by default
-        example dict:  {'Airspeed': airspeed.array }
-    '''
-    import matplotlib.pyplot as plt
-    print 'title:', title
-    if len(array_dict.keys())==0:
-        print 'Nothing to plot!'
-        return
-    figure = plt.figure()
-    figure.set_size_inches(10,5)
-    series_names = array_dict.keys()[:4]  #only first 4
-    series_formats = ['k','g','b','r']    #color codes
-    for i,nm in enumerate(series_names):
-        plt.plot(array_dict[nm], series_formats[i])
-    if grid: plt.grid(True, color='gray')
+
+def plot_mapped_array(plt, myaxis, states, mapped_array, title="", series_format="g"):
+    '''MappedArray maps discrete states to an integer array.
+       Here we plot the states as a time series with states labelled on the y axis.'''
+    plt.yticks( np.arange(len(states)), states )
+    myaxis.plot(mapped_array, 'g')
+    myaxis.grid(True, color='gray')
+    plt.ylim(0, len(states)) 
     plt.title(title)
-    if legend: plt.legend(series_names, 'upper left')
-    plt.xlabel('time index')
-    print 'Paused for plot review. Close plot window to continue.'
-    plt.show()
-    #plt.clf()
-    plt.close()
 
-
-def ra_plot(ra_section,     array_dict, 
-            tcas_ctl_array, tcas_up_array, tcas_down_array, 
-            vert_ctl_array, sens_array,    filename, orig, dest):
+    
+def ra_plot(array_dict, tcas_ctl_array, tcas_up_array, tcas_down_array, 
+            vert_ctl_array, sens_array, filename, orig, dest, tstart, tend):
     '''plot tcas: vertical speed + controls    '''
     import matplotlib.pyplot as plt
     plt.figure(figsize=(15,15)) #set size in inches
@@ -180,34 +144,25 @@ def ra_plot(ra_section,     array_dict,
     
     # top time series plot
     axts    = plt.subplot2grid((8, 1), (0, 0), rowspan=3) #time series    
-    series_names = array_dict.keys()[:4]  #only first 4
+    series_names = array_dict.keys()  #only first 4
     series_formats = ['k','g','b','r']    #color codes
     for i,nm in enumerate(series_names):
-        axts.plot(array_dict[nm], series_formats[i], alpha=0.3)
+        axts.plot(array_dict[nm], series_formats[i], alpha=0.45)
     leg = axts.legend(series_names, 'upper left', fancybox=True)
     leg.get_frame().set_alpha(0.5)
     axts.grid(True, color='gray')
     plt.title('Vertical Speed (fpm)')
-    #plt.xlim(8300,8500)
-    axts.set_xlim(xmin=8300) #failed
     axts.autoscale(enable=False)
     
     # combined control
     ax_ctl = plt.subplot2grid((8, 1), (3, 0), sharex=axts)     # 
-    #states
     ctl_states = tcas_ctl_array.values_mapping.values()
     ctl_states = [s.replace('Advisory','Advzy').replace('Corrective', 'Corr.') for s in ctl_states]
-    plt.yticks( np.arange(len(ctl_states)), ctl_states )
-    # adjust data for display
     ctl_array = tcas_ctl_array.data 
-    ax_ctl.plot(ctl_array, 'g')
-    ax_ctl.grid(True, color='gray')
-    plt.ylim(0, len(ctl_states)) 
-    plt.title('TCAS Combined Control')
+    plot_mapped_array(plt, ax_ctl, ctl_states, ctl_array, title="TCAS Combined Control")
 
     # up and down advisory
     ax_updown   = plt.subplot2grid((8, 1), (4, 0), sharex=axts, rowspan=2)  
-    # states
     up_states   = [' ']+tcas_up_array.values_mapping.values()
     down_states = [' ']+tcas_down_array.values_mapping.values()
     ud_states    = up_states + down_states
@@ -216,18 +171,17 @@ def ra_plot(ra_section,     array_dict,
         st = st.replace('Descent Corrective','Desc Corr.')
         st = st.replace('Descend ','Desc>')
         #st = st.replace('Descent','Descend')
-        st = st.replace('Advisory','Advzy')
+        st = st.replace('Advisory','Advzy').replace('advisory','Advzy')
         #st = st.replace("Don'Cl","Don't Cl")
         st = st.replace("Don't Climb ","Don't Climb>")
         return st
 
     ud_states = [ disp_state(s) for s in ud_states]
-    plt.yticks( np.arange(len(ud_states)), ud_states )
-    
-    # adjust data for display
-    up_array = tcas_up_array.data + 1
+    plt.yticks( np.arange(len(ud_states)), ud_states )   
+
+    up_array = tcas_up_array.data + 1 # adjust for display
     ax_updown.plot(up_array, 'g')
-    down_array = tcas_down_array.data + len(up_states)+1
+    down_array = tcas_down_array.data + len(up_states)+1 # adjust for display
     ax_updown.plot(down_array, 'r')
     ax_updown.grid(True, color='gray')
     plt.ylim(0, len(up_states) + len(down_states)) 
@@ -235,49 +189,84 @@ def ra_plot(ra_section,     array_dict,
     
     # vertical control
     ax_vert   = plt.subplot2grid((8, 1), (6, 0), sharex=axts)  
-    # states
     vert_states   = vert_ctl_array.values_mapping.values()    
     vert_states = [' ']+[s.replace("Advisory is not one of the following types",'NA') for s in vert_states]
-    plt.yticks( np.arange(len(vert_states)), vert_states )
-    #adjust data for display
     vert_array = vert_ctl_array.data + 1
-    ax_vert.plot(vert_array, 'g')   
-    ax_vert.grid(True, color='gray')
-    plt.ylim(0, len(vert_states)) 
-    plt.title('TCAS Vertical Control')
+    plot_mapped_array(plt, ax_vert, vert_states, vert_array, title="TCAS Vertical Control")
     
-    #pdb.set_trace()
-
     #sensitivity mode    
     ax_sens   = plt.subplot2grid((8, 1), (7, 0), sharex=axts)  
-    # states
     sens_states   = sens_array.values_mapping.values()    
     sens_states = [' ']+[s.replace("SL = ",'') for s in sens_states]
-    plt.yticks( np.arange(len(sens_states)), sens_states )
-    #adjust data for display
-    sens_arr = sens_array.data + 1
-    ax_sens.plot(sens_arr, 'g')   
-    ax_sens.grid(True, color='gray')
-    plt.ylim(0, len(sens_states)) 
-    plt.title('TCAS Sensitivity Mode')
-    
+    sens_arr = sens_array.data + 1 # adjust for display
+    plot_mapped_array(plt, ax_sens, sens_states, sens_arr, title="TCAS Sensitivity Mode")
+
     plt.xlabel('time index')
-    xmin = max( ra_section.start_edge-15.0, 0)   
-    xmax = min( ra_section.stop_edge+15.0, len(vert_array)) 
-    plt.xlim(xmin, xmax) 
+    plt.xlim(tstart, tend) 
     plt.suptitle('TCAS RA: '+filename.value + '\n  '+orig.value['code']['icao']+'-'+dest.value['code']['icao'])
     return plt
     
-    
-### TODO deal with reversals later
-### TODO if Vertical Control = Increase then add 1000 fpm to climb/desc
-### TODO Climb Corrective, Descend Corrective --- = Level Off?
+
+def update_std_vert_spd(t, lag_end, cmb_ctl, acceleration, required_fpm, std_vert_spd):
+    if t<lag_end: # not responding yet
+        pass
+    else:
+        if cmb_ctl == 'Down Advisory Corrective':
+            if std_vert_spd>required_fpm: std_vert_spd -= acceleration
+            if std_vert_spd<required_fpm: std_vert_spd = required_fpm #correct overshoot
+        elif cmb_ctl == 'Up Advisory Corrective':
+            if std_vert_spd<required_fpm: std_vert_spd += acceleration
+            if std_vert_spd>required_fpm: std_vert_spd = required_fpm #correct overshoot
+        else: #better have a look
+            print 'TCAS RA Standard Response: Ctl not Up or Down Corrective. Take a look!'
+            pdb.set_trace()    
+    return std_vert_spd
+
+
+"""
+class TCASRAResponsePlot(DerivedParameterNode):
+    '''dummy node for diagnostic plotting '''
+    name = "TCAS RA Response Plot"
+    def derive(self, std_vert_spd = P('TCAS RA Standard Response'), 
+                     tcas_ctl  =  M('TCAS Combined Control'), 
+                     tcas_up   =  M('TCAS Up Advisory'), 
+                     tcas_down =  M('TCAS Down Advisory'), 
+                     tcas_vert =  M('TCAS Vertical Control'), 
+                     tcas_sens =  M('TCAS Sensitivity Level'), 
+                     vertspd   =  P('Vertical Speed'), 
+                     ra_sections = S('TCAS RA Sections'), 
+                     raduration  = KPV('TCAS RA Warning Duration'),
+                     filename    = A('Myfile'),
+                     orig = A('FDR Takeoff Airport'),
+                     dest = A('FDR Landing Airport'),
+              ):
+        print 'starting', filename
+        if len(ra_sections)>0:
+            tstart = max( min([ra.start_edge for ra in ra_sections])-15.0, 0)
+            tend   = min( max([ra.stop_edge for ra in ra_sections]) +15.0, len(tcas_ctl.array))
+            #pdb.set_trace()
+            plt = ra_plot({'vertspd':vertspd.array, 'std response':std_vert_spd.array}, 
+                      tcas_ctl.array, tcas_up.array, tcas_down.array, 
+                      tcas_vert.array, tcas_sens.array, filename, orig, dest,
+                      tstart, tend
+                      )  
+            #helper.show_plot(plt)                      
+            fname = filename.value.replace('.hdf5', '.png')
+            helper.save_plot(plt, fname)
+        self.array = std_vert_spd.array
+        print 'finishing', filename
+        return
+"""
+
+
+
+### TODO sort out Drop Track and Altitude 
+### TODO what if TCAS Vertical Control is Maintain; 
 class TCASRAStandardResponse(DerivedParameterNode):
-    '''nominal pilot response -- a vertical speed curve
-        source for response time and acceleration:
-            "Introduction to TCAS II version 7.1" 
-               Federal Aviation Administration, 
-               February 28, 2011.  p. 39
+    '''standard pilot response -- a vertical speed curve to use as a reference
+        source for standard response time and acceleration:
+               "Introduction to TCAS II version 7.1" 
+                Federal Aviation Administration, February 28, 2011.  p. 39
             
         initial response time = 5 sec    (2.5 sec for reversal)
         acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)
@@ -290,27 +279,21 @@ class TCASRAStandardResponse(DerivedParameterNode):
                      tcas_up   =  M('TCAS Up Advisory'), 
                      tcas_down =  M('TCAS Down Advisory'), 
                      tcas_vert =  M('TCAS Vertical Control'), 
-                     tcas_sens =  M('TCAS Sensitivity Level'), 
                      vertspd   =  P('Vertical Speed'), 
                      ra_sections = S('TCAS RA Sections'), 
                      raduration  = KPV('TCAS RA Warning Duration'),
-                     filename    = A('Myfile'),
-                     orig = A('FDR Takeoff Airport'),
-                     dest = A('FDR Landing Airport'),
               ):
                     
-        response_states = ('response lag', 'acceleration', 'response completed')
-        standard_vert_accel   = 8.0 * 60            #  8 ft/sec^2, converted to ft/min^2
-        standard_vert_accel_reversal   = 11.2   # ft/sec^2
-        standard_response_lag = 5.0             # seconds
-        standard_response_lag_reversal =  2.5   # seconds
-        
+        standard_vert_accel            =  8.0 * 60   #  8 ft/sec^2, converted to ft/min^2
+        standard_vert_accel_reversal   = 11.2 * 60   # ft/sec^2 ==> ft/min^2
+        standard_response_lag          =  5.0        # seconds
+        standard_response_lag_reversal =  2.5        # seconds       
         self.array = vertspd.array * 0 #make a copy, mask and zero out
         self.array.mask = True
         required_fpm_array = vertspd.array * 0
         
         for ra in ra_sections:                      
-            print 'in sections'
+            self.debug('TCAS RA Standard Response: in sections')
             #initialize response state
             ra_ctl_prev     = tcas_ctl.array[ra.start_edge] # used to check if the command has changed
             up_prev         = tcas_ctl.array[ra.start_edge] # used to check if the command has changed
@@ -323,61 +306,30 @@ class TCASRAStandardResponse(DerivedParameterNode):
                         
             for t in range(int(ra.start_edge), int(ra.stop_edge)):               
                 # set required_fpm for initial ra or a change in command
-                if ra_ctl_prev!=tcas_ctl.array[t] or up_prev!=tcas_up.array[t] or down_prev!=tcas_down.array[t]:
-                        
+                if ra_ctl_prev!=tcas_ctl.array[t] or up_prev!=tcas_up.array[t] or down_prev!=tcas_down.array[t]:                        
                     if tcas_ctl.array[t] == 'Up Advisory Corrective':
-                        required_fpm = tcas_vertical_speed_up( 
-                                                tcas_up.array[t], 
-                                                vertspd.array[t]
-                                                )                            
+                        required_fpm = tcas_vert_spd_up(tcas_up.array[t], vertspd.array[t])                            
                     elif tcas_ctl.array[t] == 'Down Advisory Corrective':
-                        required_fpm = tcas_vertical_speed_down(  
-                                                tcas_down.array[t], 
-                                                vertspd.array[t]
-                                                )
+                        required_fpm = tcas_vert_spd_down(tcas_down.array[t], vertspd.array[t])
                     if tcas_vert.array[t]=='Reversal':                                                
                         lag_end = t + standard_response_lag_reversal
                         acceleration = standard_vert_accel_reversal                    
                         initial_vert_spd = std_vert_spd
-
                 if required_fpm is None:
-                    print 'I am very CONFUSED by this RA!!!'                
+                    self.warning('TCAS RA Standard Response: No required_fpm found. Take a look!')                
                     pdb.set_trace()                        
-                
-                if t<lag_end: # not responding yet
-                    self.array.data[t] = initial_vert_spd
-                    std_vert_spd
-                else:
-                    if tcas_ctl.array[t] == 'Down Advisory Corrective':
-                        if std_vert_spd>required_fpm: std_vert_spd -= acceleration
-                        if std_vert_spd<required_fpm: std_vert_spd = required_fpm #correct overshoot
-                    elif tcas_ctl.array[t] == 'Up Advisory Corrective':
-                        if std_vert_spd<required_fpm: std_vert_spd += acceleration
-                        if std_vert_spd>required_fpm: std_vert_spd = required_fpm #correct overshoot
-                    else: #better have a look
-                        print 'now what?'
-                        pdb.set_trace()
-                        
+
+                std_vert_spd= update_std_vert_spd(t, lag_end, tcas_ctl.array[t], acceleration, required_fpm, std_vert_spd)
                 self.array.data[t] = std_vert_spd
                 self.array.mask[t] = False
                 required_fpm_array[t] = required_fpm
-                #end of loop    
                 ra_ctl_prev = tcas_ctl.array[t]
                 up_prev     = tcas_up.array[t] 
                 down_prev   = tcas_down.array[t]                
-                
-            plt = ra_plot(ra, {'vertspd':vertspd.array, 'required fpm':required_fpm_array, 'std response':self.array}, 
-                          tcas_ctl.array, tcas_up.array, tcas_down.array, 
-                          tcas_vert.array, tcas_sens.array, filename, orig, dest
-                          )  
-            #print 'Paused for plot review. Close plot window to continue.'
-            #plt.show()
-            #plt.close()
-            plt.draw()
-            fname = filename.value.replace('.hdf5', '.png')
-            plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
-            
+                #end of time loop within ra section
+        return
 
+    
 
 def deltas(myarray):
     '''returns changes in value, same dimension as original array. 
@@ -458,49 +410,37 @@ class TCASVerticalControl(KeyPointValueNode):
 
 
 class TCASCombinedControl(KeyPointValueNode):
-    '''
-        find tcas_ctl.array.data value changes (first diff)
-        for each change point return a kpv using the control name
-
-       No Advisory
-       Clear of Conflict
-       Drop Track
-       Altitude Lost
-       Up Advisory Corrective
-       Down Advisory Corrective
-       Preventive
+    ''' find tcas_ctl.array.data value changes (first diff)
+        for each change point return a kpv using the control name. States:
+          ( No Advisory, Clear of Conflict, Drop Track, Altitude Lost,
+            Up Advisory Corrective, Down Advisory Corrective, Preventive )            
     '''
     units = 'state'    
-
     def derive(self, tcas_ctl=M('TCAS Combined Control'), airs=S('Airborne') ):
-        #for air in airs:
-        #    ctl = tcas_ctl.array[air.slice]
-            
         _change_points = change_indexes(tcas_ctl.array.data) #returns array index
         for cp in _change_points:
-            #pdb.set_trace()
             _value = tcas_ctl.array.data[cp]
             _name = 'TCAS Combined Control|' + tcas_ctl.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
+
                                  
 class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
     name = 'TCAS RA Start Pilot Sensitivity Mode'
     def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra=KTI('TCAS RA Start')):
         self.create_kpvs_at_ktis(tcas_sens.array, ra)
 
-#"""
+
 class TCASSensitivity(KeyPointValueNode):
     name = 'TCAS Pilot Sensitivity Mode'
     def derive(self, tcas_sens=P('TCAS Sensitivity Level'), airs=S('Airborne') ):
         _change_points = change_indexes(tcas_sens.array.data) #returns array index
         for cp in _change_points:
-            #pdb.set_trace()
             _value = tcas_sens.array.data[cp]
             _name = 'TCAS Sensitivity|' + tcas_sens.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
-#"""
+
 
 class VerticalSpeedAtTCASRAStart(KeyPointValueNode):
     units = 'fpm'
@@ -555,39 +495,35 @@ def test10():
     return files_to_process
 
     
-def test_sql_jfk():
-    '''sample test set based on query from Oracle fds_flight_record'''
-    query = """select file_path from fds_flight_record 
-                 where 
-                    orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )"""
+
+def ra_denominator_superset()
+    '''Used to find denominator. include all flights of interest,
+            filtering on availability of required parameters.
+            
+       This could be a large set.  
+       Intent is to run it rarely, and only for denominator kpv's.
+       
+       KPVs with additional dependencies will need to have their denominators
+         further whittled down accordingly, so this is just a starting point.
+        
+       If fancy data quality filters are needed, those may need to be implemented
+         within DataQuality or Denominator KPVs.
+    '''
+    query="""select distinct f.file_path 
+                from fds_flight_record f 
+                 where f.base_file_path is not null 
+                   and recorded_parameters like '%TCAS Combined Control%'
+          """
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return files_to_process
 
-def ra_pkl_check():
-   '''verify tcas profile using flights from updated LFL and load from pkl'''   
-   query="""select distinct f.file_path 
-                from (select * from fds_flight_record where analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
-                join 
-                 fds_kpv kpv 
-                  on kpv.base_file_path=f.base_file_path
-                 where f.base_file_path is not null 
-                   and  f.base_file_path like '%cleansed%' 
-                   and  (kpv.name='TCAS RA Warning Duration'
-                         and kpv.value between 2.5 and 120.0                   
-                       )  --ignore excessively long warnings
-                   and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
-                   --and rownum<=2"""
-   files_to_process = fds_oracle.flight_record_filepaths(query)
-   return files_to_process
 
-
-def test_ra_flights():
-    '''look only at flights with an RA'''
+def ra_event_set():
+    '''compute all metrics for these: look only at flights with an RA'''
     query="""select distinct f.file_path 
                 from fds_flight_record f join fds_kpv kpv 
                   on kpv.base_file_path=f.base_file_path
                  where f.base_file_path is not null 
-                   and  f.base_file_path like '%cleansed%' 
                    and  (kpv.name='TCAS RA Warning Duration'
                          and kpv.value between 2.5 and 120.0                   
                        )  --ignore excessively long warnings
@@ -602,7 +538,7 @@ if __name__=='__main__':
     ###CONFIGURATION options###################################################
     FILES_TO_PROCESS = ra_pkl_check() #test_ra_flights()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
     COMMENT   = 'loaded from pkl and used updated lfl'
-    LOG_LEVEL = 'DEBUG'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     profile_name = os.path.basename(__file__).replace('.py','') #helper.get_short_profile_name(__file__)   # profile name = the name of this file

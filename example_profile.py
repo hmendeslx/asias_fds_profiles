@@ -142,7 +142,7 @@ class DistanceTravelledInAir(DerivedParameterNode):
         repaired_array = repair_mask(airspeed.array)  # to avoid integration hiccups 
         adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
         self.array = adist
-        aplot({'air dist':adist, 'airspd':airspeed.array})
+        helper.aplot({'air dist':adist, 'airspd':airspeed.array})
 
 
 ### Section 3: pre-defined test sets
