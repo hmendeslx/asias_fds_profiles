@@ -24,7 +24,7 @@ from analysis_engine.node import ( A,   FlightAttributeNode,               # one
 #   Section = namedtuple('Section',                  'name slice start_edge stop_edge')   #=Phase
 #   KeyPointValue   = recordtype('KeyPointValue', '  index value name slice datetime latitude longitude', field_defaults={'slice':slice(None)}, default=None)
                             
-from analysis_engine.library import (integrate, repair_mask, index_at_value, all_of, any_of, max_value, min_value,np_ma_masked_zeros_like, value_at_index,
+from analysis_engine.library import (integrate, repair_mask, index_at_value, all_of, any_of, max_value, min_value, max_abs_value, np_ma_masked_zeros_like, value_at_index,
                                      is_index_within_slice)
 # asias_fds stuff
 import analyser_custom_settings as settings
@@ -45,14 +45,14 @@ from flightdatautilities.model_information import (get_conf_map,
 '''
 Needs for UA benchmark
 
-Fast Approach --Fix Vref tables
-Slow Approach --Fix Vref tables
-Above Glideslope --split from GS Deviation
-Below Glideslope
-Localizer Deviation --change return value to be absolute deviation
+Fast Approach --Fix Vref tables -done (mostly)
+Slow Approach --Fix Vref tables -done (mostly)
+Above Glideslope --split from GS Deviation -done
+Below Glideslope -done
+Localizer Deviation --change return value to be absolute deviation -done
 High Rate of Descent (RateOfDescent500To50FtMax and RateOfDescent1000To500FtMax)
-Low Power --add AT settings??
-Late Gear -- 
+Low Power -- add AT settings??
+Late Gear -- -done
 Late Flaps --(AltitudeAtLastFlapChangeBeforeTouchdown)
 '''
 class A320(VelocitySpeed):
@@ -284,7 +284,175 @@ class AltitudeAtLastGearDownBeforeTouchdown(KeyPointValueNode):
                 last_index = np.round(rough_index)
                 alt_last = value_at_index(alt_aal.array, last_index)
                 self.create_kpv(last_index, alt_last)     
+
+class GlideslopeDeviation1000To500FtMax(KeyPointValueNode):
+    '''
+    Determine maximum deviation from the glideslope between 1000 and 500 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Glideslope Deviation 1000 To 500 Ft Max'
+    units = 'dots'
+
+    def derive(self,
+               ils_glideslope=P('ILS Glideslope'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Glideslope Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(1000, 500)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_glideslope:
+            self.create_kpvs_within_slices(
+                ils_glideslope.array,
+                alt_bands,
+                max_value,
+            )
+        else:
+            self.warning("ILS Glideslope not measured on approach")            
+            return
         
+class GlideslopeDeviation500To200FtMax(KeyPointValueNode):
+    '''
+    Determine maximum deviation from the glideslope between 500 and 200 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Glideslope Deviation 500 To 200 Ft Max'
+    units = 'dots'
+
+    def derive(self,
+               ils_glideslope=P('ILS Glideslope'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Glideslope Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(500, 200)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_glideslope:
+            self.create_kpvs_within_slices(
+                ils_glideslope.array,
+                alt_bands,
+                max_value,
+            )
+        else:
+            self.warning("ILS Glideslope not measured on approach")            
+            return
+        
+class GlideslopeDeviation1000To500FtMin(KeyPointValueNode):
+    '''
+    Determine minimium deviation from the glideslope between 1000 and 500 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Glideslope Deviation 1000 To 500 Ft Min'
+    units = 'dots'
+
+    def derive(self,
+               ils_glideslope=P('ILS Glideslope'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Glideslope Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(1000, 500)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_glideslope:
+            self.create_kpvs_within_slices(
+                ils_glideslope.array,
+                alt_bands,
+                min_value,
+            )
+        else:
+            self.warning("ILS Glideslope not measured on approach")            
+            return
+        
+class GlideslopeDeviation500To200FtMin(KeyPointValueNode):
+    '''
+    Determine minimium deviation from the glideslope between 500 and 200 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Glideslope Deviation 500 To 200 Ft Min'
+    units = 'dots'
+
+    def derive(self,
+               ils_glideslope=P('ILS Glideslope'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Glideslope Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(500, 200)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_glideslope:
+            self.create_kpvs_within_slices(
+                ils_glideslope.array,
+                alt_bands,
+                min_value,
+            )
+        else:
+            self.warning("ILS Glideslope not measured on approach")            
+            return
+
+class LocalizerDeviation500To50FtMax(KeyPointValueNode):
+    '''
+    Determine maximum absolute deviation from the localizer between 500 and 50 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Localizer Deviation 500 To 50 Ft Max'
+    units = 'dots'
+
+    def derive(self,
+               ils_localizer=P('ILS Localizer'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Localizer Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(500, 50)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_localizer:
+            self.create_kpvs_within_slices(
+                abs(ils_localizer.array),
+                alt_bands,
+                max_abs_value,
+            )
+        else:
+            self.warning("ILS Localizer not measured on approach")            
+            return
+        
+class LocalizerDeviation1000To500FtMax(KeyPointValueNode):
+    '''
+    Determine maximum absolute deviation from the localizer between 1000 and 500 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Localizer Deviation 1000 To 500 Ft Max'
+    units = 'dots'
+
+    def derive(self,
+               ils_localizer=P('ILS Localizer'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Localizer Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(1000, 500)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_localizer:
+            self.create_kpvs_within_slices(
+                abs(ils_localizer.array),
+                alt_bands,
+                max_abs_value,
+            )
+        else:
+            self.warning("ILS Localizer not measured on approach")            
+            return
+
 ### Section 3: pre-defined test sets
 def tiny_test():
     '''quick test set'''
@@ -348,7 +516,7 @@ if __name__=='__main__':
     ###CONFIGURATION options###################################################
     FILES_TO_PROCESS = test_sql_jfk() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test()
     COMMENT   = 'lfl and pkl load check'
-    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     profile_name = os.path.basename(__file__).replace('.py','') #helper.get_short_profile_name(__file__)   # profile name = the name of this file
