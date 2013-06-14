@@ -142,7 +142,7 @@ class DistanceTravelledInAir(DerivedParameterNode):
         repaired_array = repair_mask(airspeed.array)  # to avoid integration hiccups 
         adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
         self.array = adist
-        helper.aplot({'air dist':adist, 'airspd':airspeed.array})
+        #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
 
 
 ### Section 3: pre-defined test sets
@@ -153,13 +153,19 @@ def tiny_test():
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
     return files_to_process
 
+def test10_shared():
+    '''quick test set'''
+    input_dir  = 'Y:/asias_fds/base_data/test10/'
+    print input_dir
+    files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
+    return files_to_process
+
 def test10():
     '''quick test set'''
     input_dir  = settings.BASE_DATA_PATH + 'test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
     return files_to_process
-
     
 def test_sql_jfk():
     '''sample test set based on query from Oracle fds_flight_record'''
@@ -194,7 +200,7 @@ def test_kpv_range():
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = tiny_test() #test_kpv_range()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
+    FILES_TO_PROCESS = test10_shared() #test_kpv_range()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
     COMMENT   = 'updated paths'
     LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
