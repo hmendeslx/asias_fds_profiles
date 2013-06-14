@@ -73,11 +73,11 @@ class TCASRASections(FlightPhaseNode):
             # require RA to start at least 10 seconds after liftoff 
             is_post_liftoff =  (ras_slices[0].start - off.get_first().index) > 10 
             if is_post_liftoff and len(ras_slices)<5: #ignore cycling
-                print 'ra section', ras_slices
+                #print 'ra section', ras_slices
                 for ra_slice in ras_slices:                    
                     duration = ra_slice.stop-ra_slice.start                     
                     if 3.0 <= duration < 120.0: #ignore if too short to do anything
-                        print ' ra section', ra_slice
+                        #print ' ra section', ra_slice
                         self.create_phase( ra_slice )    
         return
 
@@ -89,13 +89,16 @@ class TCASRAStart(KeyTimeInstanceNode):
             self.create_kti(s.start_edge)
 
 
-def tcas_vert_spd_up(tcas_up, vert_speed):
+def tcas_vert_spd_up(tcas_up, vert_speed, tcas_vert):
     '''determine the change in vertical speed commanded  by a tcas ra 
             if TCAS combined control is Up Advisory
     '''
     upcmd = tcas_up
     if upcmd=='Climb':
-        return 1500  # climb at least 1500 fpm 
+        if tcas_vert=="Increase":            
+            return 2500  # climb at least 1500 fpm 
+        else:
+            return 1500
     elif upcmd=="Don't Descend 500":
         return -500  # don't descend more than 500 fpm
     elif upcmd=="Don't Descend 1000":
@@ -107,13 +110,16 @@ def tcas_vert_spd_up(tcas_up, vert_speed):
         return None
         
 
-def tcas_vert_spd_down(tcas_down, vert_speed):
+def tcas_vert_spd_down(tcas_down, vert_speed, tcas_vert):
     '''determine the change in vertical speed commanded  by a tcas ra
         if TCAS combined control is Down Advisory
     '''
     downcmd = tcas_down
     if downcmd=='Descend':
-        return -1500  #descent at least 1500 fpm 
+        if tcas_vert=="Increase":            
+            return -2500  # climb at least 1500 fpm 
+        else:
+            return -1500
     elif downcmd=="Don't Climb 500":
         return 500 #don't descend more than 500 fpm
     elif downcmd=="Don't Climb 1000":
@@ -308,9 +314,9 @@ class TCASRAStandardResponse(DerivedParameterNode):
                 # set required_fpm for initial ra or a change in command
                 if ra_ctl_prev!=tcas_ctl.array[t] or up_prev!=tcas_up.array[t] or down_prev!=tcas_down.array[t]:                        
                     if tcas_ctl.array[t] == 'Up Advisory Corrective':
-                        required_fpm = tcas_vert_spd_up(tcas_up.array[t], vertspd.array[t])                            
+                        required_fpm = tcas_vert_spd_up(tcas_up.array[t], vertspd.array[t], tcas_vert.array[t])                            
                     elif tcas_ctl.array[t] == 'Down Advisory Corrective':
-                        required_fpm = tcas_vert_spd_down(tcas_down.array[t], vertspd.array[t])
+                        required_fpm = tcas_vert_spd_down(tcas_down.array[t], vertspd.array[t], tcas_vert.array[t])
                     if tcas_vert.array[t]=='Reversal':                                                
                         lag_end = t + standard_response_lag_reversal
                         acceleration = standard_vert_accel_reversal                    
@@ -333,10 +339,11 @@ class TCASRAStandardResponse(DerivedParameterNode):
 
 def deltas(myarray):
     '''returns changes in value, same dimension as original array. 
-        The first element is always 0
+        The first element is always set
     '''
+    #pdb.set_trace()
     d=np.diff(myarray)
-    delta = np.concatenate([[0],d])
+    delta = np.concatenate([ [0],d])
     return delta
 
 def change_indexes(myarray):
@@ -487,16 +494,10 @@ def tiny_test():
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
     return files_to_process
 
-def test10():
-    '''quick test set'''
-    input_dir  = settings.BASE_DATA_PATH + 'test10/'
-    print input_dir
-    files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    return files_to_process
 
     
-
-def ra_denominator_superset()
+# we will probably need pairings of denominator set + event set.
+def ra_denominator_superset():
     '''Used to find denominator. include all flights of interest,
             filtering on availability of required parameters.
             
@@ -518,8 +519,10 @@ def ra_denominator_superset()
     return files_to_process
 
 
-def ra_event_set():
-    '''compute all metrics for these: look only at flights with an RA'''
+def ra_measure_set():
+    '''Compute all metrics for these, looking only at flights with an RA.
+         These calculations may be expensive, so we want a small set of flights to deal with.
+    '''
     query="""select distinct f.file_path 
                 from fds_flight_record f join fds_kpv kpv 
                   on kpv.base_file_path=f.base_file_path
@@ -536,7 +539,7 @@ def ra_event_set():
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = ra_pkl_check() #test_ra_flights()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
+    FILES_TO_PROCESS = ra_measure_set() #test_ra_flights()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
     COMMENT   = 'loaded from pkl and used updated lfl'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
