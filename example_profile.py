@@ -112,26 +112,7 @@ class InitialApproach(FlightPhaseNode):
             self.create_phase(slice( dbegin, dend ))
         return
 
-
-def aplot(array_dict={}, grid=True, legend=True):
-    '''plot a dictionary of up to four arrays, with legend by default
-        example dict:  {'Airspeed': airspeed.array }
-    '''
-    import matplotlib.pyplot as plt
-    if len(array_dict.keys())==0:
-        print 'Nothing to plot!'
-        return
-    series_names = array_dict.keys()[:4]  #only first 4
-    series_formats = ['k','g','b','r']    #color codes
-    for i,nm in enumerate(series_names):
-        plt.plot(array_dict[nm], series_formats[i])
-    if grid: plt.grid(True, color='gray')
-    if legend: plt.legend(series_names, 'upper center')
-    plt.xlabel('time index')
-    print 'Paused for plot review. Close plot window to continue.'
-    plt.show()
-    plt.clf()
-    
+   
 
 class DistanceTravelledInAir(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
@@ -200,7 +181,7 @@ def test_kpv_range():
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = test10_shared() #test_kpv_range()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
+    FILES_TO_PROCESS = test10() #tiny_test() #test10_shared() #test_kpv_range()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
     COMMENT   = 'updated paths'
     LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True

@@ -44,7 +44,7 @@ from analysis_engine.node import ( A,   FlightAttributeNode,               # one
 #   Section = namedtuple('Section',                  'name slice start_edge stop_edge')   #=Phase
 #   KeyPointValue   = recordtype('KeyPointValue', '  index value name slice datetime latitude longitude', field_defaults={'slice':slice(None)}, default=None)
                             
-import library
+import analysis_engine.library as library
 # asias_fds stuff
 import analyser_custom_settings as settings
 import staged_helper  as helper 
@@ -352,6 +352,27 @@ def change_indexes(myarray):
     '''
     return np.where( deltas(myarray)!=0 )[0]
 
+
+class TCASCombinedControl(KeyPointValueNode):
+    ''' find tcas_ctl.array.data value changes (first diff)
+        for each change point return a kpv using the control name. States:
+          ( No Advisory, Clear of Conflict, Drop Track, Altitude Lost,
+            Up Advisory Corrective, Down Advisory Corrective, Preventive )            
+    '''
+    units = 'state'    
+    def derive(self, tcas_ctl=M('TCAS Combined Control'), ra_sections = S('TCAS RA Sections') ):
+        _change_points = change_indexes(tcas_ctl.array.data) #returns array index
+        for cp in _change_points:
+            _value = tcas_ctl.array.data[cp]
+            if tcas_ctl.array.mask[cp]:
+                _name = 'TCAS Combined Control|masked'
+            else:
+                _name = 'TCAS Combined Control|' + tcas_ctl.array[cp]
+            if cp>0 and _value and _name:
+                kpv = KeyPointValue(index=cp, value=_value, name=_name)
+                self.append(kpv)
+
+
 ###TODO try np.ediff1d(), use airborne or add simple phase to kpv
 class TCASUpAdvisory(KeyPointValueNode):
     '''
@@ -364,13 +385,16 @@ class TCASUpAdvisory(KeyPointValueNode):
     '''
     units = 'state'    
     
-    def derive(self, tcas_up=M('TCAS Up Advisory'), airs=S('Airborne') ):
+    def derive(self, tcas_up=M('TCAS Up Advisory'), ra_sections=S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_up.array.data) #returns array index
         print 'up', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_up.array.data[cp]
-            _name = 'TCAS Up Advisory|' + tcas_up.array[cp]
+            if tcas_up.array.mask[cp]:
+                _name = 'TCAS Up Advisory|masked'
+            else:
+                _name = 'TCAS Up Advisory|' + tcas_up.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
 
@@ -385,13 +409,16 @@ class TCASDownAdvisory(KeyPointValueNode):
     '''
     units = 'state'    
 
-    def derive(self, tcas_down=M('TCAS Down Advisory'), airs=S('Airborne') ):
+    def derive(self, tcas_down=M('TCAS Down Advisory'), ra_sections = S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_down.array.data) #returns array index
         print 'down', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_down.array.data[cp]
-            _name = 'TCAS Down Advisory|' + tcas_down.array[cp]
+            if tcas_down.array.mask[cp]:
+                _name = 'TCAS Down Advisory|masked'
+            else:
+                _name = 'TCAS Down Advisory|' + tcas_down.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
             
@@ -405,31 +432,19 @@ class TCASVerticalControl(KeyPointValueNode):
     '''
     units = 'state'    
 
-    def derive(self, tcas_vrt=M('TCAS Vertical Control'), airs=S('Airborne') ):
+    def derive(self, tcas_vrt=M('TCAS Vertical Control'), ra_sections = S('TCAS RA Sections')):
         _change_points = change_indexes(tcas_vrt.array.data) #returns array index
         print 'vert', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_vrt.array.data[cp]
-            _name = 'TCAS Vertical Control|' + tcas_vrt.array[cp]
+            if tcas_vrt.array.mask[cp]:
+                _name = 'TCAS Vertical Control|masked'
+            else:
+                _name = 'TCAS Vertical Control|' + tcas_vrt.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
 
-
-class TCASCombinedControl(KeyPointValueNode):
-    ''' find tcas_ctl.array.data value changes (first diff)
-        for each change point return a kpv using the control name. States:
-          ( No Advisory, Clear of Conflict, Drop Track, Altitude Lost,
-            Up Advisory Corrective, Down Advisory Corrective, Preventive )            
-    '''
-    units = 'state'    
-    def derive(self, tcas_ctl=M('TCAS Combined Control'), airs=S('Airborne') ):
-        _change_points = change_indexes(tcas_ctl.array.data) #returns array index
-        for cp in _change_points:
-            _value = tcas_ctl.array.data[cp]
-            _name = 'TCAS Combined Control|' + tcas_ctl.array[cp]
-            kpv = KeyPointValue(index=cp, value=_value, name=_name)
-            self.append(kpv)
 
                                  
 class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
@@ -440,11 +455,14 @@ class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
 
 class TCASSensitivity(KeyPointValueNode):
     name = 'TCAS Pilot Sensitivity Mode'
-    def derive(self, tcas_sens=P('TCAS Sensitivity Level'), airs=S('Airborne') ):
+    def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra_sections=S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_sens.array.data) #returns array index
         for cp in _change_points:
             _value = tcas_sens.array.data[cp]
-            _name = 'TCAS Sensitivity|' + tcas_sens.array[cp]
+            if tcas_sens.array.mask[cp]:
+                _name = 'TCAS Sensitivity|masked'
+            else:
+                _name = 'TCAS Sensitivity|' + tcas_sens.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
 
