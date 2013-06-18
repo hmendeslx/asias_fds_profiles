@@ -101,10 +101,7 @@ def get_vspeed_map_mitre(series=None, family=None, engine_series=None, engine_ty
             #found = 'None'
             #return found
 
-
-
-
-class AirspeedReferenceVref(DerivedParameterNode):
+class AirspeedReferenceVref(FlightAttributeNode):
     '''a simple derived parameter = a new time series'''
     name = 'Vref (Recorded then Lookup)'
     units = 'kts'
@@ -138,17 +135,19 @@ class AirspeedReferenceVref(DerivedParameterNode):
 
         if vref:
             # Use recorded Vref parameter:
-            self.array = vref.array
+            #self.array = vref.array
+            self.set_flight_attr(vref.array)
         elif afr_vref:
             # Use provided Vref from achieved flight record:
             afr_vspeed = afr_vref
-            self.array = np.ma.zeros(len(air_spd.array), np.double)
-            self.array.mask = True
+            afrvref = np.ma.zeros(len(air_spd.array), np.double)
+            afrvref.mask = True
             for approach in approaches:
-                self.array[approach.slice] = afr_vspeed.value
+                afrvref[approach.slice] = afr_vspeed.value
+            self.set_flight_attr(afrvref)
         else:
             # Use speed card lookups
-            self.array = np_ma_masked_zeros_like(air_spd.array)
+            lookup = np_ma_masked_zeros_like(air_spd.array)
 
             x = map(lambda x: x.value if x else None, (series, family, engine, engine_type))
 
@@ -198,7 +197,105 @@ class AirspeedReferenceVref(DerivedParameterNode):
                                  "because Vref lookup table does not have corresponding values.")
                         return
  
-                    self.array[_slice] = vspeed
+                    lookup[_slice] = vspeed
+                    self.set_flight_attr(lookup)
+
+
+#class AirspeedReferenceVref(DerivedParameterNode):
+    #'''a simple derived parameter = a new time series'''
+    #name = 'Vref (Recorded then Lookup)'
+    #units = 'kts'
+
+    #@classmethod
+    #def can_operate(cls, available):
+        #vref = 'Vref' in available
+        #afr = 'Airspeed' in available and any_of(['AFR Vref'], available)
+        #x = set(available)
+        #base = ['Airspeed', 'Series', 'Family', 'Approach And Landing',
+                #'Touchdown', 'Gross Weight Smoothed']
+        #weight = base + ['Gross Weight Smoothed']
+        ###airbus = set(weight + ['Configuration']).issubset(x)
+        #config = set(weight + ['Flap']).issubset(x)
+        #return vref or afr or config
+
+    #def derive(self,
+               #flap=P('Flap'),
+               ##conf=P('Configuration'),
+               #air_spd=P('Airspeed'),
+               #gw=P('Gross Weight Smoothed'),
+               #touchdowns=KTI('Touchdown'),
+               #series=A('Series'),
+               #family=A('Family'),
+               #engine=A('Engine Series'),
+               #engine_type=A('Engine Type'),
+               #eng_np=P('Eng (*) Np Avg'),
+               #vref=P('Vref'),
+               #afr_vref=A('AFR Vref'),
+               #approaches=S('Approach And Landing')):
+
+        #if vref:
+            ## Use recorded Vref parameter:
+            #self.array = vref.array
+        #elif afr_vref:
+            ## Use provided Vref from achieved flight record:
+            #afr_vspeed = afr_vref
+            #self.array = np.ma.zeros(len(air_spd.array), np.double)
+            #self.array.mask = True
+            #for approach in approaches:
+                #self.array[approach.slice] = afr_vspeed.value
+        #else:
+            ## Use speed card lookups
+            #self.array = np_ma_masked_zeros_like(air_spd.array)
+
+            #x = map(lambda x: x.value if x else None, (series, family, engine, engine_type))
+
+            #vspeed_class_test = get_vspeed_map_mitre(*x)
+            
+            #if vspeed_class_test:
+                #vspeed_class = vspeed_class_test
+            #else:
+                #vspeed_class = get_vspeed_map(*x)
+
+                        
+            
+            
+            #if gw is not None:  # and you must have eng_np
+                #try:
+                    ## Allow up to 2 superframe values to be repaired:
+                    ## (64 * 2 = 128 + a bit)
+                    #repaired_gw = repair_mask(gw.array, repair_duration=130,
+                                              #copy=True, extrapolate=True)
+                #except:
+                    #self.warning("'Airspeed Reference' will be fully masked "
+                                 #"because 'Gross Weight Smoothed' array could not be "
+                                 #"repaired.")
+                    #return
+
+                #setting_param = flap #or conf
+                #vspeed_table = vspeed_class()
+                #for approach in approaches:
+                    #_slice = approach.slice
+                    #'''TODO: Only uses max Vref setting, doesn't account for late config changes'''
+                    #index = np.ma.argmax(setting_param.array[_slice])
+                    #setting = setting_param.array[_slice][index]
+                    #weight = repaired_gw[_slice][index] if gw is not None else None
+                    #if setting in vspeed_table.vref_settings:
+                       ###and is_index_within_slice(touchdowns.get_last().index, _slice):
+                        ## setting in vspeed table:
+                        #vspeed = vspeed_table.vref(setting, weight)
+                    #else:
+                        #''' Do not like the default of using max Vref for go arounds... '''
+                        ### No landing and max setting not in vspeed table:
+                        ##if setting_param.name == 'Flap':
+                            ##setting = max(get_flap_map(series.value, family.value))
+                        ##else:
+                            ##setting = max(get_conf_map(series.value, family.value).keys())
+                            ##vspeed = vspeed_table.vref(setting, weight)
+                        #self.warning("'Airspeed Reference' will be fully masked "
+                                 #"because Vref lookup table does not have corresponding values.")
+                        #return
+ 
+                    #self.array[_slice] = vspeed
                             
                             
 class AirspeedRelativeMax1000to500ftHAT (KeyPointValueNode):
@@ -206,64 +303,100 @@ class AirspeedRelativeMax1000to500ftHAT (KeyPointValueNode):
     name = 'Airspeed Relative 1000 to 500 ft HAT Max'
     units = 'kts'
     
+    @classmethod
+    def can_operate(cls, available):
+        vref = 'Vref (Recorded then Lookup)' in available
+        return vref
+    
     def derive(self,
-               vref=P('Vref (Recorded then Lookup)'),
+               #vref=P('Vref (Recorded then Lookup)'),
+               vref=A('Vref (Recorded then Lookup)'),
                cas=P('Airspeed'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
                approaches=S('Approach And Landing')):
         
-        for app in approaches:          
-            cas_vref=cas.array-vref.array
-            self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),max_value)
+        for app in approaches:  
+            if vref.value is not None:
+                cas_vref=cas.array-vref.value
+                self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),max_value)
+            else:
+                return
             
 class AirspeedRelativeMin1000to500ftHAT (KeyPointValueNode):
     '''CAS-Vref 1000 to 500 ft HAT'''
     name = 'Airspeed Relative 1000 to 500 ft HAT Min'
     units = 'kts'
-
+    
+    @classmethod
+    def can_operate(cls, available):
+        vref = 'Vref (Recorded then Lookup)' in available
+        return vref
+    
     def derive(self,
-               vref=P('Vref (Recorded then Lookup)'),
+               #vref=P('Vref (Recorded then Lookup)'),
+               vref=A('Vref (Recorded then Lookup)'),
                cas=P('Airspeed'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
                approaches=S('Approach And Landing')):
     
         for app in approaches:          
-            cas_vref=cas.array-vref.array
-            self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),min_value)
+            if vref.value is not None:
+                cas_vref=cas.array-vref.value
+                self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),min_value)
+            else:
+                return
             
 class AirspeedRelativeMax500to50ftHAT (KeyPointValueNode):
     '''CAS-Vref 500 to 50 ft HAT'''
     name = 'Airspeed Relative 500 to 50 ft HAT Max'
     units = 'kts'
     
+    @classmethod
+    def can_operate(cls, available):
+        vref = 'Vref (Recorded then Lookup)' in available
+        return vref    
+    
     def derive(self,
-               vref=P('Vref (Recorded then Lookup)'),
+               #vref=P('Vref (Recorded then Lookup)'),
+               vref=A('Vref (Recorded then Lookup)'),
                cas=P('Airspeed'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
                approaches=S('Approach And Landing')):
         
-        for app in approaches:          
-            cas_vref=cas.array-vref.array
-            self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),max_value)
+        for app in approaches:  
+            if vref.value is not None:            
+                cas_vref=cas.array-vref.value
+                self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),max_value)
+            else:
+                return
             
 class AirspeedRelativeMin500to50ftHAT (KeyPointValueNode):
     '''CAS-Vref 500 to 50 ft HAT'''
     name = 'Airspeed Relative 500 to 50 ft HAT Min'
     units = 'kts'
 
+    @classmethod
+    def can_operate(cls, available):
+        vref = 'Vref (Recorded then Lookup)' in available
+        return vref
+
     def derive(self,
-               vref=P('Vref (Recorded then Lookup)'),
+               #vref=P('Vref (Recorded then Lookup)'),
+               vref=A('Vref (Recorded then Lookup)'),
                cas=P('Airspeed'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
                approaches=S('Approach And Landing')):
     
-        for app in approaches:          
-            cas_vref=cas.array-vref.array
-            self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),min_value)
+        for app in approaches:       
+            if vref.value is not None:               
+                cas_vref=cas.array-vref.value
+                self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),min_value)
+            else:
+                return
             
 class AltitudeAtLastGearDownBeforeTouchdown(KeyPointValueNode):
     '''
@@ -478,6 +611,15 @@ def test_sql_jfk():
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return files_to_process
 
+def test_sql_ua_apts():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    query = """select file_path from fds_flight_record 
+                 where 
+                    dest_icao in ('KFLL','KMCO','KHPN','KIAD' )
+                    """
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return files_to_process
+
 def test_kpv_range():
     '''run against flights with select kpv values.
         TODO check how do multi-state params work
@@ -514,7 +656,7 @@ def pkl_check():
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = test_sql_jfk() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test()
+    FILES_TO_PROCESS = test_sql_jfk() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts()
     COMMENT   = 'lfl and pkl load check'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
