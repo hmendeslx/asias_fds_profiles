@@ -7,7 +7,7 @@ FDS' FlightDataAnalyzer base data.
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
 import pdb
-import os, glob
+import os, glob, socket
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
                                    App, ApproachNode,                      # per approach
                                    P,   DerivedParameterNode,              # time series with continuous values 
@@ -113,7 +113,7 @@ class InitialApproach(FlightPhaseNode):
         return
 
    
-
+"""
 class DistanceTravelledInAir(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
     units='nm'
@@ -124,7 +124,7 @@ class DistanceTravelledInAir(DerivedParameterNode):
         adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
         self.array = adist
         #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
-
+"""
 
 ### Section 3: pre-defined test sets
 def tiny_test():
@@ -132,42 +132,60 @@ def tiny_test():
     input_dir  = settings.BASE_DATA_PATH + 'tiny_test/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    return files_to_process
+    repo='keith'
+    return repo, files_to_process
 
 def test10_shared():
     '''quick test set'''
     input_dir  = 'Y:/asias_fds/base_data/test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    return files_to_process
+    repo='serrano'
+    return repo, files_to_process
 
 def test10():
     '''quick test set'''
     input_dir  = settings.BASE_DATA_PATH + 'test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    return files_to_process
+    repo='keith'
+    return repo, files_to_process
     
 def test_sql_jfk():
     '''sample test set based on query from Oracle fds_flight_record'''
     query = """select distinct file_path from fds_flight_record 
                  where 
-                    orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
+                    file_repository='central' 
+                    and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
+                    and rownum<15
                     """
-    files_to_process = fds_oracle.flight_record_filepaths(query)
-    return files_to_process
+    files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
+    repo='central'
+    return repo, files_to_process
+
+def test_sql_jfk_local():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    repo='local'
+    query = """select distinct file_path from fds_flight_record 
+                 where 
+                    file_repository='REPO' 
+                    and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
+                    and rownum<15
+                    """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
+    return repo, files_to_process
 
 def test_kpv_range():
     '''run against flights with select kpv values.
         TODO check how do multi-state params work
         TODO add index to FDS_KPV, FDS_KTI
-        TODO improve support for profile KPV KTI phases
         TODO think more about treatment of multiples for a given KPV or KTI
     '''
     query="""select distinct f.file_path --, kpv.name, kpv.value
                 from fds_flight_record f join fds_kpv kpv 
                   on kpv.base_file_path=f.base_file_path
-                 where f.base_file_path is not null 
+                 where f.file_repository='central' 
+                   and f.base_file_path is not null
                    and f.orig_icao='KJFK' and f.dest_icao='KFLL'
                    and ( 
                          (kpv.name='Airspeed 500 To 20 Ft Max' and kpv.value between 100.0 and 200.0)
@@ -176,35 +194,22 @@ def test_kpv_range():
                 order by file_path
                 """
     files_to_process = fds_oracle.flight_record_filepaths(query)
+    repo='keith'
+    return repo, files_to_process
+
     return files_to_process
     
-    
+
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = test10() #tiny_test() #test10_shared() #test_kpv_range()  #test10() #tiny_test() #test_kpv_range() #test_sql_jfk() #
-    COMMENT   = 'updated paths'
+    PROFILE_NAME = 'example_keith' + '-'+ socket.gethostname()   
+    FILE_REPOSITORY, FILES_TO_PROCESS = test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    COMMENT   = 'test file repos'
     LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
-    profile_name = os.path.basename(__file__).replace('.py','') #helper.get_short_profile_name(__file__)   # profile name = the name of this file
-    print 'profile', profile_name
-    save_oracle = True
-    reports_dir = settings.PROFILE_REPORTS_PATH
-    logger = helper.initialize_logger(LOG_LEVEL)
-    # Determine module names so FlightDataAnalyzer knows what nodes it is working with. Must be in PYTHON_PATH.
-    #  Normally we are just passing the current profile, but we could also send a list of profiles.
-    module_names = [profile_name] #+'.'+short_profile, ]
-    logger.warning('profile: '+profile_name)
-    output_dir = settings.PROFILE_DATA_PATH + profile_name+'/' 
-    if not os.path.exists(output_dir): os.makedirs(output_dir)
-
-    helper.run_analyzer(profile_name, module_names, 
-             logger, FILES_TO_PROCESS, 
-             'NA', output_dir, reports_dir, 
-             include_flight_attributes=False, 
-             make_kml=MAKE_KML_FILES, 
-             save_oracle=save_oracle,
-             comment=COMMENT)   
-        
-    logger.warning('done with profile')
+    
+    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    print 'profile', PROFILE_NAME 
+    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, FILE_REPOSITORY )
     
