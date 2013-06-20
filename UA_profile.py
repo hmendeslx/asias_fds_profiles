@@ -7,7 +7,7 @@ Example profile module: defines a set of measures that run against Analyzer base
       save comments only to job records, not flight records.
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
-import os, glob
+import os, glob, socket
 import numpy as np
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
                                    App, ApproachNode,                      # per approach
@@ -589,36 +589,51 @@ class LocalizerDeviation1000To500FtMax(KeyPointValueNode):
 ### Section 3: pre-defined test sets
 def tiny_test():
     '''quick test set'''
+    repo = 'NA'
     input_dir  = settings.BASE_DATA_PATH + 'tiny_test/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    return files_to_process
+    return repo, files_to_process
 
 def test10():
     '''quick test set'''
+    repo = 'NA'
     input_dir  = settings.BASE_DATA_PATH + 'test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    return files_to_process
+    return repo, files_to_process
       
     
 def test_sql_jfk():
     '''sample test set based on query from Oracle fds_flight_record'''
+    repo = 'central'
     query = """select file_path from fds_flight_record 
-                 where 
-                    orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
-                    """
+                 where file_repository='REPO'
+                    and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
+                    """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    return files_to_process
+    return repo, files_to_process
+
+def test_sql_jfk_local():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    repo = 'local'
+    query = """select file_path from fds_flight_record 
+                 where file_repository='REPO'
+                    and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
+                    """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
 
 def test_sql_ua_apts():
     '''sample test set based on query from Oracle fds_flight_record'''
+    repo = 'central'
     query = """select file_path from fds_flight_record 
                  where 
-                    dest_icao in ('KFLL','KMCO','KHPN','KIAD' )
-                    """
+                    file_repository='REPO'
+                    and dest_icao in ('KFLL','KMCO','KHPN','KIAD' )
+                    """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    return files_to_process
+    return repo, files_to_process
 
 def test_kpv_range():
     '''run against flights with select kpv values.
@@ -627,59 +642,60 @@ def test_kpv_range():
         TODO improve support for profile KPV KTI phases
         TODO think more about treatment of multiples for a given KPV or KTI
     '''
+    repo = 'central'
     query="""select f.file_path --, kpv.name, kpv.value
                 from fds_flight_record f join fds_kpv kpv 
                   on kpv.base_file_path=f.base_file_path
-                 where f.base_file_path is not null 
+                 where f.file_repository='REPO'
                    and ( 
                          (kpv.name='Airspeed 500 To 20 Ft Max' and kpv.value between 100.0 and 200.0)
                         or (kpv.name='Simple Kpv' and kpv.value>100)
                        ) 
                 order by file_path
-                """
+                """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    return files_to_process
+    return repo, files_to_process
     
-def pkl_check():
+def local_check():
    '''verify tcas profile using flights from updated LFL and load from pkl'''   
+   repo = 'local'
    query="""select distinct f.file_path 
                 from (select * from fds_flight_record where analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
                 join 
                  fds_kpv kpv 
                   on kpv.base_file_path=f.base_file_path
                  where f.base_file_path is not null 
-                   and  f.base_file_path like '%cleansed%' 
+                   and  f.file_repository='REPO'
                    and orig_icao='KJFK' and dest_icao in ('KFLL')
-                   --and rownum < 10"""
+                   and rownum < 10""".replace('REPO',repo)
    files_to_process = fds_oracle.flight_record_filepaths(query)
-   return files_to_process
+   return repo, files_to_process
+
+def pkl_check():
+   '''verify tcas profile using flights from updated LFL and load from pkl'''   
+   repo = 'central'
+   query="""select distinct f.file_path 
+                from (select * from fds_flight_record where analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
+                join 
+                 fds_kpv kpv 
+                  on kpv.base_file_path=f.base_file_path
+                 where f.base_file_path is not null 
+                   and  f.file_repository='REPO'
+                   and orig_icao='KJFK' and dest_icao in ('KFLL')
+                   and rownum < 10""".replace('REPO',repo)
+   files_to_process = fds_oracle.flight_record_filepaths(query)
+   return repo, files_to_process
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    FILES_TO_PROCESS = test_sql_jfk() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts()
-    COMMENT   = 'lfl and pkl load check'
+    PROFILE_NAME = 'UA'  + '-'+ socket.gethostname()   
+    REPO, FILES_TO_PROCESS = test_sql_jfk_local() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts()
+    COMMENT   = 'use file repository'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
-    profile_name = os.path.basename(__file__).replace('.py','') #helper.get_short_profile_name(__file__)   # profile name = the name of this file
-    print 'profile', profile_name
-    save_oracle = True
-    reports_dir = settings.PROFILE_REPORTS_PATH
-    logger = helper.initialize_logger(LOG_LEVEL)
-    # Determine module names so FlightDataAnalyzer knows what nodes it is working with. Must be in PYTHON_PATH.
-    #  Normally we are just passing the current profile, but we could also send a list of profiles.
-    module_names = [profile_name] #+'.'+short_profile, ]
-    logger.warning('profile: '+profile_name)
-    output_dir = settings.PROFILE_DATA_PATH + profile_name+'/' 
-    if not os.path.exists(output_dir): os.makedirs(output_dir)
-
-    helper.run_analyzer(profile_name, module_names, 
-             logger, FILES_TO_PROCESS, 
-             'NA', output_dir, reports_dir, 
-             include_flight_attributes=False, 
-             make_kml=MAKE_KML_FILES, 
-             save_oracle=save_oracle,
-             comment=COMMENT)   
-        
-    logger.warning('done with profile')
+    
+    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    print 'profile', PROFILE_NAME 
+    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, REPO )
     
