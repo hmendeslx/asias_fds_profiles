@@ -103,7 +103,9 @@ def tcas_vert_spd_up(tcas_up, vert_speed, tcas_vert):
         return -500  # don't descend more than 500 fpm
     elif upcmd=="Don't Descend 1000":
         return -1000
-    elif upcmd=="Don't Descend 2000":
+    elif upcmd.endswith("2000"):
+        return -2000
+    elif upcmd.endswith('Corrective'): #temp hack pending remapping
         return -2000
     else: # 'Preventative' state seems questionable
         print 'Other initial up: ', tcas_up
@@ -125,6 +127,8 @@ def tcas_vert_spd_down(tcas_down, vert_speed, tcas_vert):
     elif downcmd=="Don't Climb 1000":
         return 1000
     elif downcmd=="Don't Climb 2000":
+        return 2000
+    elif downcmd.endswith('Corrective'): #temp hack pending remapping
         return 2000
     else: 
         print 'Other initial down: ', tcas_down
@@ -229,7 +233,7 @@ def update_std_vert_spd(t, lag_end, cmb_ctl, acceleration, required_fpm, std_ver
     return std_vert_spd
 
 
-"""
+
 class TCASRAResponsePlot(DerivedParameterNode):
     '''dummy node for diagnostic plotting '''
     name = "TCAS RA Response Plot"
@@ -262,7 +266,7 @@ class TCASRAResponsePlot(DerivedParameterNode):
         self.array = std_vert_spd.array
         print 'finishing', filename
         return
-"""
+
 
 
 
@@ -539,31 +543,48 @@ def ra_denominator_superset():
     repo = 'central'
     return repo, files_to_process
 
-
-def ra_measure_set():
+def ra_measure_set_local():
     '''Compute all metrics for these, looking only at flights with an RA.
          These calculations may be expensive, so we want a small set of flights to deal with.
     '''
+    repo = 'local'
     query="""select distinct f.file_path 
                 from fds_flight_record f join fds_kpv kpv 
-                  on kpv.base_file_path=f.base_file_path
-                 where  f.file_repository='local' 
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
+                 where  f.file_repository='REPO' 
                    and f.base_file_path is not null 
                    and  (kpv.name='TCAS RA Warning Duration'
                          and kpv.value between 2.5 and 120.0                   
                        )  --ignore excessively long warnings
                    and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
-                   and rownum<=2
-                """
+                   --and rownum<=2
+                """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    repo = 'central'
     return repo, files_to_process
     
+def ra_measure_set_central():
+    '''Compute all metrics for these, looking only at flights with an RA.
+         These calculations may be expensive, so we want a small set of flights to deal with.
+    '''
+    repo = 'central'
+    query="""select distinct f.file_path 
+                from fds_flight_record f join fds_kpv kpv 
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
+                 where  f.file_repository='REPO' 
+                   and f.base_file_path is not null 
+                   and  (kpv.name='TCAS RA Warning Duration'
+                         and kpv.value between 2.5 and 120.0                   
+                       )  --ignore excessively long warnings
+                   and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
+                   --and rownum<=2
+                """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'tcas_keith'  + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS = ra_measure_set() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
+    FILE_REPOSITORY, FILES_TO_PROCESS = ra_measure_set_central() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
     COMMENT   = 'updated repo and profile naming'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True

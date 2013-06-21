@@ -183,7 +183,7 @@ def test_kpv_range():
     '''
     query="""select distinct f.file_path --, kpv.name, kpv.value
                 from fds_flight_record f join fds_kpv kpv 
-                  on kpv.base_file_path=f.base_file_path
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
                  where f.file_repository='central' 
                    and f.base_file_path is not null
                    and f.orig_icao='KJFK' and f.dest_icao='KFLL'
