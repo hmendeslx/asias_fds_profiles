@@ -635,6 +635,16 @@ def test_sql_ua_apts():
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
 
+def test_sql_ua_all():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    repo = 'central'
+    query = """select file_path from fds_flight_record 
+                 where 
+                    file_repository='REPO'                    
+                    """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
+
 def test_kpv_range():
     '''run against flights with select kpv values.
         TODO check how do multi-state params work
@@ -645,7 +655,7 @@ def test_kpv_range():
     repo = 'central'
     query="""select f.file_path --, kpv.name, kpv.value
                 from fds_flight_record f join fds_kpv kpv 
-                  on kpv.base_file_path=f.base_file_path
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
                  where f.file_repository='REPO'
                    and ( 
                          (kpv.name='Airspeed 500 To 20 Ft Max' and kpv.value between 100.0 and 200.0)
@@ -663,7 +673,7 @@ def local_check():
                 from (select * from fds_flight_record where analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
                 join 
                  fds_kpv kpv 
-                  on kpv.base_file_path=f.base_file_path
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
                  where f.base_file_path is not null 
                    and  f.file_repository='REPO'
                    and orig_icao='KJFK' and dest_icao in ('KFLL')
@@ -678,7 +688,7 @@ def pkl_check():
                 from (select * from fds_flight_record where analysis_time>to_date('2013-06-08 13:00','YYYY-MM-DD HH24:MI')) f 
                 join 
                  fds_kpv kpv 
-                  on kpv.base_file_path=f.base_file_path
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
                  where f.base_file_path is not null 
                    and  f.file_repository='REPO'
                    and orig_icao='KJFK' and dest_icao in ('KFLL')
@@ -689,8 +699,8 @@ def pkl_check():
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'UA'  + '-'+ socket.gethostname()   
-    REPO, FILES_TO_PROCESS = test_sql_jfk_local() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts()
-    COMMENT   = 'use file repository'
+    REPO, FILES_TO_PROCESS = test_sql_ua_all() #test_sql_jfk_local() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts()
+    COMMENT   = 'big test'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
