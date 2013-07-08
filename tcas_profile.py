@@ -54,31 +54,53 @@ import fds_oracle
 ### Section 2: measure definitions -- attributes, KTI, phase/section, KPV, DerivedParameter
 #      DerivedParameters will cause a set of hdf5 files to be generated.
 
-
+"""
 # use as cross-check on kti processing
 class SimpleKTI(KeyTimeInstanceNode):
     '''a simple KTI. start_datetime is used only to provide a dependency'''
     def derive(self, start_datetime=A('Start Datetime')):
         #print 'in SimpleKTI'
         self.create_kti(3)    
+"""
 
-
-class TCASRASections(FlightPhaseNode):
+"""
+class TCASRASections(FlightPhaseNode):  # OLD VERSION 
     '''TCAS RA sections that pass quality filtering '''
     name = 'TCAS RA Sections'
-    def derive(self, tcas=M('TCAS Combined Control'), off=KTI('Liftoff') ):
+    def derive(self, tcas=M('TCAS Combined Control'), off=KTI('Liftoff'), td=KTI('Touchdown') ):
         ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
         ras_slices = library.runs_of_ones(ras_local)
         if ras_slices:
             # require RA to start at least 10 seconds after liftoff 
-            is_post_liftoff =  (ras_slices[0].start - off.get_first().index) > 10 
-            if is_post_liftoff and len(ras_slices)<5: #ignore cycling
-                #print 'ra section', ras_slices
-                for ra_slice in ras_slices:                    
-                    duration = ra_slice.stop-ra_slice.start                     
-                    if 3.0 <= duration < 120.0: #ignore if too short to do anything
-                        #print ' ra section', ra_slice
-                        self.create_phase( ra_slice )    
+            #if is_post_liftoff and len(ras_slices)<5: #ignore cycling
+            #print 'ra section', ras_slices
+            for ra_slice in ras_slices:                    
+                is_post_liftoff =  (ra_slice.start - off.get_first().index) > 10 
+                is_pre_touchdown = (td.get_first().index - ra_slice.start ) > 10 
+                duration = ra_slice.stop-ra_slice.start                     
+                if is_post_liftoff and is_pre_touchdown  and 3.0 <= duration < 300.0: #ignore if too short to do anything
+                    #print ' ra section', ra_slice
+                    self.create_phase( ra_slice )    
+        return
+"""
+
+class TCASCtlSections(FlightPhaseNode):  # OLD VERSION 
+    '''TCAS RA sections that pass quality filtering '''
+    name = 'TCAS Ctl Sections'
+    def derive(self, tcas=M('TCAS Combined Control') ): #, off=KTI('Liftoff'), td=KTI('Touchdown') ):
+        ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
+        ras_slices = library.runs_of_ones(ras_local)
+        if ras_slices:
+            # require RA to start at least 10 seconds after liftoff 
+            #if is_post_liftoff and len(ras_slices)<5: #ignore cycling
+            #print 'ra section', ras_slices
+            for ra_slice in ras_slices:                    
+                #is_post_liftoff =  (ra_slice.start - off.get_first().index) > 10 
+                #is_pre_touchdown = (td.get_first().index - ra_slice.start ) > 10 
+                #duration = ra_slice.stop-ra_slice.start                     
+                #if is_post_liftoff and is_pre_touchdown  and 3.0 <= duration < 300.0: #ignore if too short to do anything
+                #    #print ' ra section', ra_slice
+                self.create_phase( ra_slice )    
         return
 
 
@@ -88,6 +110,31 @@ class TCASRAStart(KeyTimeInstanceNode):
         for s in ra_sections:
             self.create_kti(s.start_edge)
 
+
+class TCASRASections(FlightPhaseNode):
+    name = 'TCAS RA Sections'
+    def derive(self, ra=M('TCAS RA'), off=KTI('Liftoff'), td=KTI('Touchdown') ):
+        ras_local = ra.array
+        ras_slices = library.runs_of_ones(ras_local)
+        for ra_slice in ras_slices:                    
+            is_post_liftoff =  (ra_slice.start - off.get_first().index) > 10 
+            is_pre_touchdown = (td.get_first().index - ra_slice.start ) > 10 
+            duration = ra_slice.stop-ra_slice.start                     
+            if is_post_liftoff and is_pre_touchdown  and 3.0 <= duration < 300.0: #ignore if too short to do anything
+                #print ' ra section', ra_slice
+                self.create_phase( ra_slice )    
+        return
+
+""" not needed
+class TCASRASectionsDirty(FlightPhaseNode):
+    name = 'TCAS RA Sections Dirty'
+    def derive(self, ra=M('TCAS RA') ):
+        ras_local = ra.array
+        ras_slices = library.runs_of_ones(ras_local)
+        for ra_slice in ras_slices:                    
+            self.create_phase( ra_slice )    
+        return
+"""
 
 def tcas_vert_spd_up(tcas_up, vert_speed, tcas_vert):
     '''determine the change in vertical speed commanded  by a tcas ra 
@@ -229,11 +276,11 @@ def update_std_vert_spd(t, lag_end, cmb_ctl, acceleration, required_fpm, std_ver
             if std_vert_spd>required_fpm: std_vert_spd = required_fpm #correct overshoot
         else: #better have a look
             print 'TCAS RA Standard Response: Ctl not Up or Down Corrective. Take a look!'
-            pdb.set_trace()    
+            #pdb.set_trace()    
     return std_vert_spd
 
 
-
+#"""
 class TCASRAResponsePlot(DerivedParameterNode):
     '''dummy node for diagnostic plotting '''
     name = "TCAS RA Response Plot"
@@ -266,10 +313,10 @@ class TCASRAResponsePlot(DerivedParameterNode):
         self.array = std_vert_spd.array
         print 'finishing', filename
         return
+#"""
 
 
-
-
+#"""
 ### TODO sort out Drop Track and Altitude 
 ### TODO what if TCAS Vertical Control is Maintain; 
 class TCASRAStandardResponse(DerivedParameterNode):
@@ -327,7 +374,7 @@ class TCASRAStandardResponse(DerivedParameterNode):
                         initial_vert_spd = std_vert_spd
                 if required_fpm is None:
                     self.warning('TCAS RA Standard Response: No required_fpm found. Take a look!')                
-                    pdb.set_trace()                        
+                    #pdb.set_trace()                        
 
                 std_vert_spd= update_std_vert_spd(t, lag_end, tcas_ctl.array[t], acceleration, required_fpm, std_vert_spd)
                 self.array.data[t] = std_vert_spd
@@ -338,6 +385,7 @@ class TCASRAStandardResponse(DerivedParameterNode):
                 down_prev   = tcas_down.array[t]                
                 #end of time loop within ra section
         return
+#"""
 
     
 
@@ -470,7 +518,6 @@ class TCASSensitivity(KeyPointValueNode):
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
 
-
 class VerticalSpeedAtTCASRAStart(KeyPointValueNode):
     units = 'fpm'
     name = 'TCAS RA Start Vertical Speed'
@@ -499,6 +546,13 @@ class RollAtTCASRAStart(KeyPointValueNode):
         self.create_kpvs_at_ktis(np.abs(roll.array), ra)
 
 
+class AirspeedAtTCASRAStart(KeyPointValueNode):
+    units = 'kts'
+    name = 'TCAS RA Start Airspeed'
+    def derive(self, airspeed=P('Airspeed'), ra=KTI('TCAS RA Start')):
+        self.create_kpvs_at_ktis(np.abs(airspeed.array), ra)
+
+
 class AutopilotAtTCASRAStart(KeyPointValueNode):
     '''1=Engaged, otherwise Disengaged'''
     name = 'TCAS RA Start Autopilot'
@@ -506,6 +560,25 @@ class AutopilotAtTCASRAStart(KeyPointValueNode):
         #print 'AUTOPILOT'
         self.create_kpvs_at_ktis(ap.array, ra)
 
+
+class TCASRATimeToAPDisengage(KeyPointValueNode):
+    '''
+    adapted from FDS 'TCAS RA To AP Disengaged Duration', but uses TCAS RA Start
+    time between the onset of the RA and disconnection of the autopilot.
+    '''
+    name = 'TCAS RA Time To AP Disengage'
+    units = 's'
+
+    def derive(self, ap_offs=KTI('AP Disengaged Selection'), ras=S('TCAS RA Sections') ):
+        for ra_section in ras:
+            ra = ra_section.slice
+            ap_off = ap_offs.get_next(ra.start, within_slice=ra)
+            if not ap_off:
+                continue
+            index = ap_off.index
+            duration = (index - ra.start) / self.frequency
+            print 'CREATING TIME TO AP'
+            self.create_kpv(index, duration)
 
 
 ### Section 3: pre-defined test sets
@@ -543,6 +616,7 @@ def ra_denominator_superset():
     repo = 'central'
     return repo, files_to_process
 
+
 def ra_measure_set_local():
     '''Compute all metrics for these, looking only at flights with an RA.
          These calculations may be expensive, so we want a small set of flights to deal with.
@@ -562,6 +636,7 @@ def ra_measure_set_local():
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
     
+    
 def ra_measure_set_central():
     '''Compute all metrics for these, looking only at flights with an RA.
          These calculations may be expensive, so we want a small set of flights to deal with.
@@ -573,19 +648,91 @@ def ra_measure_set_central():
                  where  f.file_repository='REPO' 
                    and f.base_file_path is not null 
                    and  (kpv.name='TCAS RA Warning Duration'
-                         and kpv.value between 2.5 and 120.0                   
+                         and kpv.value between 2.5 and 300.0                   
                        )  --ignore excessively long warnings
                    and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
                    --and rownum<=2
                 """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
+
     
+def ra_measure_set_sfo():
+    '''Compute all metrics for these, looking only at flights with an RA.
+         These calculations may be expensive, so we want a small set of flights to deal with.
+    '''
+    repo = 'central'
+    query="""select distinct f.file_path 
+                from fds_flight_record f join fds_kpv kpv 
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
+                 where  f.file_repository='REPO' 
+                   and f.base_file_path is not null 
+                   and  (kpv.name='TCAS RA Warning Duration'
+                         and kpv.value between 2.5 and 300.0                   
+                       )  --ignore excessively long warnings
+                   and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
+                   and f.start_month between to_date('2012-04-01','YYYY-MM-DD') and to_date('2012-06-30','YYYY-MM-DD')
+                   and F.DEST_ICAO='KSFO' 
+                   and abs(time_index-touchdown_min)<abs(time_index-liftoff_min)
+                """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
+
+
+def ra_sfo_sweep():
+    '''Compute all metrics for these, looking only at flights with an RA.
+         These calculations may be expensive, so we want a small set of flights to deal with.
+    '''
+    repo = 'central'
+    query="""select distinct f.file_path 
+                from fds_flight_record f 
+                 where  f.file_repository='REPO' 
+                   and f.base_file_path is not null 
+                   and f.start_month between to_date('2012-04-01','YYYY-MM-DD') and to_date('2012-06-30','YYYY-MM-DD')
+                   and F.DEST_ICAO='KSFO' 
+                """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
+
+def ra_all_sweep():
+    '''Compute all metrics for these, looking only at flights with an RA.
+         These calculations may be expensive, so we want a small set of flights to deal with.
+    '''
+    repo = 'central'
+    query="""select distinct f.file_path 
+                from fds_flight_record f 
+                 where  f.file_repository='REPO' 
+                   and f.base_file_path is not null 
+                   and f.start_month between to_date('2012-04-01','YYYY-MM-DD') and to_date('2012-06-30','YYYY-MM-DD')
+                """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
+
+def ra_redo():
+    '''update tcas_keith profile using new RA detection -- shortcut by using output from all_sweep
+    '''
+    repo = 'central'
+    query="""select distinct f.file_path 
+            from fds_flight_record f join fds_phase ph
+              on ph.base_file_path=f.base_file_path
+            where  f.file_repository='central'
+                   and ph.profile='all_sweep-MM191123-PC'
+                   and ph.name in ( 'TCAS RA Sections' )
+                   and f.start_month >= to_date('2012-04-01','YYYY-MM-DD') 
+                   and f.start_month <= to_date('2012-06-30','YYYY-MM-DD')
+                   and ph.time_index<touchdown_min
+                   and ph.time_index>liftoff_min
+                   and ph.duration>2.5 and ph.duration<300
+            group by f.file_path
+            """
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
+
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'tcas_keith'  + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS = ra_measure_set_central() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
-    COMMENT   = 'updated repo and profile naming'
+    FILE_REPOSITORY, FILES_TO_PROCESS = ra_redo() #ra_all_sweep() #ra_measure_set_central() #ra_measure_set_sfo() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
+    COMMENT   = 'recalc all using series TCAS RA instead of Combined Control'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
