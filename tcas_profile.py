@@ -21,8 +21,8 @@ TCAS Elements
     How did pilot respond?        base: 'TCAS RA Reaction Delay' (uses normal acceleration)
         disengage AP?             this: 'TCAS RA To AP Disengaged Duration'
                                   base: 'TCAS RA Initial Reaction Strength' (positive if alt change consistent with RA)
-  
-For event rates: build a simple KPV or KTI to just check pre-req and count reference flights.
+        altitude exceedance       this:  comparison of actual response to FAA standard RA response
+
 NOTE: we are assuming 1 Hz TCAS Combined Control
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
@@ -55,36 +55,6 @@ import fds_oracle
 ### Section 2: measure definitions -- attributes, KTI, phase/section, KPV, DerivedParameter
 #      DerivedParameters will cause a set of hdf5 files to be generated.
 
-"""
-# use as cross-check on kti processing
-class SimpleKTI(KeyTimeInstanceNode):
-    '''a simple KTI. start_datetime is used only to provide a dependency'''
-    def derive(self, start_datetime=A('Start Datetime')):
-        #print 'in SimpleKTI'
-        self.create_kti(3)    
-"""
-
-"""
-class TCASRASections(FlightPhaseNode):  # OLD VERSION 
-    '''TCAS RA sections that pass quality filtering '''
-    name = 'TCAS RA Sections'
-    def derive(self, tcas=M('TCAS Combined Control'), off=KTI('Liftoff'), td=KTI('Touchdown') ):
-        ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
-        ras_slices = library.runs_of_ones(ras_local)
-        if ras_slices:
-            # require RA to start at least 10 seconds after liftoff 
-            #if is_post_liftoff and len(ras_slices)<5: #ignore cycling
-            #print 'ra section', ras_slices
-            for ra_slice in ras_slices:                    
-                is_post_liftoff =  (ra_slice.start - off.get_first().index) > 10 
-                is_pre_touchdown = (td.get_first().index - ra_slice.start ) > 10 
-                duration = ra_slice.stop-ra_slice.start                     
-                if is_post_liftoff and is_pre_touchdown  and 3.0 <= duration < 300.0: #ignore if too short to do anything
-                    #print ' ra section', ra_slice
-                    self.create_phase( ra_slice )    
-        return
-"""
-### TODO: deal with 1-second dropouts during RA
 class TCASCtlSections(FlightPhaseNode):  # OLD VERSION 
     '''TCAS RA sections that pass quality filtering '''
     name = 'TCAS Ctl Sections'
@@ -92,15 +62,7 @@ class TCASCtlSections(FlightPhaseNode):  # OLD VERSION
         ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
         ras_slices = library.runs_of_ones(ras_local)
         if ras_slices:
-            # require RA to start at least 10 seconds after liftoff 
-            #if is_post_liftoff and len(ras_slices)<5: #ignore cycling
-            #print 'ra section', ras_slices
             for ra_slice in ras_slices:                    
-                #is_post_liftoff =  (ra_slice.start - off.get_first().index) > 10 
-                #is_pre_touchdown = (td.get_first().index - ra_slice.start ) > 10 
-                #duration = ra_slice.stop-ra_slice.start                     
-                #if is_post_liftoff and is_pre_touchdown  and 3.0 <= duration < 300.0: #ignore if too short to do anything
-                #    #print ' ra section', ra_slice
                 self.create_phase( ra_slice )    
         return
 
@@ -138,16 +100,18 @@ def tcas_vert_spd_up(tcas_up, vert_speed, tcas_vert):
     upcmd = tcas_up
     if upcmd=='Climb':
         if tcas_vert=="Increase":            
-            return 2500  # climb at least 1500 fpm 
+            return 2500  
         else:
             return 1500
-    elif upcmd=="Don't Descend 500":
+    elif upcmd == "Don't Descend":
+        return 0
+    elif upcmd.endswith(" 500"):
         return -500  # don't descend more than 500 fpm
-    elif upcmd=="Don't Descend 1000":
+    elif upcmd.endswith("1000"):
         return -1000
     elif upcmd.endswith("2000"):
         return -2000
-    elif upcmd.endswith('Corrective'): #temp hack pending remapping
+    elif upcmd.endswith('Corrective'): #temp hack pending full remapping
         return -2000
     else: # 'Preventative' state seems questionable
         print 'Other initial up: ', tcas_up
@@ -161,16 +125,18 @@ def tcas_vert_spd_down(tcas_down, vert_speed, tcas_vert):
     downcmd = tcas_down
     if downcmd=='Descend':
         if tcas_vert=="Increase":            
-            return -2500  # climb at least 1500 fpm 
+            return -2500  
         else:
             return -1500
-    elif downcmd=="Don't Climb 500":
+    elif downcmd == "Don't Climb":
+        return 0
+    elif downcmd.endswith(" 500"):
         return 500 #don't descend more than 500 fpm
-    elif downcmd=="Don't Climb 1000":
+    elif downcmd.endswith("1000"):
         return 1000
-    elif downcmd=="Don't Climb 2000":
+    elif downcmd.endswith("2000"):
         return 2000
-    elif downcmd.endswith('Corrective'): #temp hack pending remapping
+    elif downcmd.endswith('Corrective'): #temp hack pending full remapping
         return 2000
     else: 
         print 'Other initial down: ', tcas_down
@@ -199,10 +165,6 @@ def update_std_vert_spd(t, lag_end, cmb_ctl, up, down, acceleration, required_fp
     else: #better have a look
         print 'RA Std Response Unknown: ', t, cmb_ctl
         new_std_vert_spd = vert_spd
-        #pdb.set_trace()    
-    #print 't,\t lag_end,\t cmb_ctl\t, acceleration, required_fpm, std_vert_spd, vert_spd'
-    #print t, lag_end, cmb_ctl, acceleration, required_fpm, std_vert_spd, vert_spd
-    #pdb.set_trace()
     return new_std_vert_spd
 
 
@@ -266,9 +228,7 @@ def ra_plot(array_dict, tcas_ra_array, tcas_ctl_array, tcas_up_array, tcas_down_
     def disp_state(st):
         st = st.replace('Descent Corrective','Desc Corr.')
         st = st.replace('Descend ','Desc>')
-        #st = st.replace('Descent','Descend')
         st = st.replace('Advisory','Advzy').replace('advisory','Advzy')
-        #st = st.replace("Don'Cl","Don't Cl")
         st = st.replace("Don't Climb ","Don't Climb>")
         return st
 
@@ -325,7 +285,6 @@ class TCASRAResponsePlot(DerivedParameterNode):
         if len(ra_sections)>0:
             tstart = max( min([ra.start_edge for ra in ra_sections])-15.0, 0)
             tend   = min( max([ra.stop_edge for ra in ra_sections]) +15.0, len(tcas_ctl.array))
-            #pdb.set_trace()
             plt = ra_plot({'vertspd':vertspd.array, 'std response':std_vert_spd.array}, 
                       tcas_ra.array, tcas_ctl.array, tcas_up.array, tcas_down.array, 
                       tcas_vert.array, tcas_sens.array, filename, orig, dest,
@@ -356,14 +315,14 @@ class TCASAltitudeExceedance(KeyPointValueNode):
                 else:
                     deviation = abs(vertspd.array[t] - std.array[t])
                     deviation = max( deviation-250, 0 ) # allow 250 fpm buffer
-                print 't vert std DEV', t, vertspd.array[t], std.array[t], deviation
+                #print 't vert std DEV', t, vertspd.array[t], std.array[t], deviation
                 if deviation and deviation!=0:
                     exceedance += deviation
-            print 'Alt Exceed', exceedance
+            #print 'Alt Exceed', exceedance
             exceedance = exceedance / 60.0 # min to sec
             self.create_kpv(ra.start_edge, exceedance)
 
-#""" 
+
 class TCASRAStandardResponse(DerivedParameterNode):
     '''standard pilot response -- a vertical speed curve to use as a reference
         source for standard response time and acceleration:
@@ -421,7 +380,6 @@ class TCASRAStandardResponse(DerivedParameterNode):
                         initial_vert_spd = std_vert_spd
                 if required_fpm is None:
                     self.warning('TCAS RA Standard Response: No required_fpm found. Take a look! '+str(t))                
-                    #pdb.set_trace()                        
 
                 std_vert_spd= update_std_vert_spd(t, lag_end, tcas_ctl.array[t], tcas_up.array[t], tcas_down.array[t],
                                                   acceleration, required_fpm, 
@@ -434,15 +392,12 @@ class TCASRAStandardResponse(DerivedParameterNode):
                 down_prev   = tcas_down.array[t]                
                 #end of time loop within ra section
         return
-#"""
-
     
 
 def deltas(myarray):
     '''returns changes in value, same dimension as original array. 
         The first element is always set
     '''
-    #pdb.set_trace()
     d=np.diff(myarray)
     delta = np.concatenate([ [0],d])
     return delta
@@ -476,16 +431,7 @@ class TCASCombinedControl(KeyPointValueNode):
 
 ###TODO try np.ediff1d(), use airborne or add simple phase to kpv
 class TCASUpAdvisory(KeyPointValueNode):
-    '''
-       No Up Advisory
-       Climb  
-       Don't Descend> 500 
-       Don't Descend> 1000 
-       Don't Descend> 2000 
-       Corrective 
-    '''
-    units = 'state'    
-    
+    units = 'state'        
     def derive(self, tcas_up=M('TCAS Up Advisory'), ra_sections=S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_up.array.data) #returns array index
         print 'up', _change_points
@@ -499,17 +445,9 @@ class TCASUpAdvisory(KeyPointValueNode):
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
 
-class TCASDownAdvisory(KeyPointValueNode):
-    '''
-       No down advisory
-       Descent
-       Don't Climb> 500      
-       Don't Climb> 1000     
-       Don't Climb> 2000
-       Corrective    # Boeing = Don't Climb > 2000
-    '''
-    units = 'state'    
 
+class TCASDownAdvisory(KeyPointValueNode):
+    units = 'state'    
     def derive(self, tcas_down=M('TCAS Down Advisory'), ra_sections = S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_down.array.data) #returns array index
         print 'down', _change_points
@@ -523,16 +461,15 @@ class TCASDownAdvisory(KeyPointValueNode):
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
             
+            
 class TCASVerticalControl(KeyPointValueNode):
-    '''
-           Advisory is not one of the following types
+    '''Advisory is one of the following types
            Crossing
            Reversal
            Increase
            Maintain    
     '''
     units = 'state'    
-
     def derive(self, tcas_vrt=M('TCAS Vertical Control'), ra_sections = S('TCAS RA Sections')):
         _change_points = change_indexes(tcas_vrt.array.data) #returns array index
         print 'vert', _change_points
@@ -545,7 +482,6 @@ class TCASVerticalControl(KeyPointValueNode):
                 _name = 'TCAS Vertical Control|' + tcas_vrt.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
-
 
                                  
 class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
@@ -611,13 +547,9 @@ class AutopilotAtTCASRAStart(KeyPointValueNode):
 
 
 class TCASRATimeToAPDisengage(KeyPointValueNode):
-    '''
-    adapted from FDS 'TCAS RA To AP Disengaged Duration', but uses TCAS RA Start
-    time between the onset of the RA and disconnection of the autopilot.
-    '''
+    '''adapted from FDS 'TCAS RA To AP Disengaged Duration', but uses TCAS RA Start'''
     name = 'TCAS RA Time To AP Disengage'
     units = 's'
-
     def derive(self, ap_offs=KTI('AP Disengaged Selection'), ras=S('TCAS RA Sections') ):
         for ra_section in ras:
             ra = ra_section.slice
@@ -626,7 +558,6 @@ class TCASRATimeToAPDisengage(KeyPointValueNode):
                 continue
             index = ap_off.index
             duration = (index - ra.start) / self.frequency
-            print 'CREATING TIME TO AP'
             self.create_kpv(index, duration)
 
 
@@ -637,94 +568,6 @@ def tiny_test():
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
     repo='keith PC'
-    return repo, files_to_process
-
-
-    
-# we will probably need pairings of denominator set + event set.
-def ra_denominator_superset():
-    '''Used to find denominator. include all flights of interest,
-            filtering on availability of required parameters.
-            
-       This could be a large set.  
-       Intent is to run it rarely, and only for denominator kpv's.
-       
-       KPVs with additional dependencies will need to have their denominators
-         further whittled down accordingly, so this is just a starting point.
-        
-       If fancy data quality filters are needed, those may need to be implemented
-         within DataQuality or Denominator KPVs.
-    '''
-    query="""select distinct f.file_path 
-                from fds_flight_record f 
-                 where  f.file_repository='central' 
-                   and f.base_file_path is not null 
-                   and recorded_parameters like '%TCAS Combined Control%'
-          """
-    files_to_process = fds_oracle.flight_record_filepaths(query)
-    repo = 'central'
-    return repo, files_to_process
-
-
-def ra_measure_set_local():
-    '''Compute all metrics for these, looking only at flights with an RA.
-         These calculations may be expensive, so we want a small set of flights to deal with.
-    '''
-    repo = 'local'
-    query="""select distinct f.file_path 
-                from fds_flight_record f join fds_kpv kpv 
-                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
-                 where  f.file_repository='REPO' 
-                   and f.base_file_path is not null 
-                   and  (kpv.name='TCAS RA Warning Duration'
-                         and kpv.value between 2.5 and 120.0                   
-                       )  --ignore excessively long warnings
-                   and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
-                   --and rownum<=2
-                """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query)
-    return repo, files_to_process
-    
-    
-def ra_measure_set_central():
-    '''Compute all metrics for these, looking only at flights with an RA.
-         These calculations may be expensive, so we want a small set of flights to deal with.
-    '''
-    repo = 'central'
-    query="""select distinct f.file_path 
-                from fds_flight_record f join fds_kpv kpv 
-                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
-                 where  f.file_repository='REPO' 
-                   and f.base_file_path is not null 
-                   and  (kpv.name='TCAS RA Warning Duration'
-                         and kpv.value between 2.5 and 300.0                   
-                       )  --ignore excessively long warnings
-                   and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
-                   --and rownum<=2
-                """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query)
-    return repo, files_to_process
-
-    
-def ra_measure_set_sfo():
-    '''Compute all metrics for these, looking only at flights with an RA.
-         These calculations may be expensive, so we want a small set of flights to deal with.
-    '''
-    repo = 'central'
-    query="""select distinct f.file_path 
-                from fds_flight_record f join fds_kpv kpv 
-                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
-                 where  f.file_repository='REPO' 
-                   and f.base_file_path is not null 
-                   and  (kpv.name='TCAS RA Warning Duration'
-                         and kpv.value between 2.5 and 300.0                   
-                       )  --ignore excessively long warnings
-                   and (kpv.TIME_INDEX - f.LIFTOFF_MIN)>10.0  --starts at least 10 secs after liftoff
-                   and f.start_month between to_date('2012-04-01','YYYY-MM-DD') and to_date('2012-06-30','YYYY-MM-DD')
-                   and F.DEST_ICAO='KSFO' 
-                   and abs(time_index-touchdown_min)<abs(time_index-liftoff_min)
-                """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
 
 
@@ -744,9 +587,7 @@ def ra_sfo_sweep():
     return repo, files_to_process
 
 def ra_all_sweep():
-    '''Compute all metrics for these, looking only at flights with an RA.
-         These calculations may be expensive, so we want a small set of flights to deal with.
-    '''
+    '''check all flights for 'TCAS RA' to capture additional RAs    '''
     repo = 'central'
     query="""select distinct f.file_path 
                 from fds_flight_record f 
@@ -758,8 +599,7 @@ def ra_all_sweep():
     return repo, files_to_process
 
 def ra_redo():
-    '''update tcas_keith profile using new RA detection -- shortcut by using output from all_sweep
-    '''
+    '''update tcas_keith profile using new RA detection -- shortcut by using output from all_sweep'''
     repo = 'central'
     query="""select distinct f.file_path 
             from fds_flight_record f join fds_phase ph
@@ -778,6 +618,7 @@ def ra_redo():
     #files_to_process =  [ f for f in files_to_process if ('N563JB' in f)]
     return repo, files_to_process
 
+
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'tcas_keith'  + '-'+ socket.gethostname()   
@@ -787,7 +628,7 @@ if __name__=='__main__':
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     
-    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    module_names = [ os.path.basename(__file__).replace('.py','') ] #helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
     helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, FILE_REPOSITORY )
 
