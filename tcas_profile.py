@@ -117,7 +117,10 @@ class TCASRASections(FlightPhaseNode):
     def derive(self, ra=M('TCAS RA'), off=KTI('Liftoff'), td=KTI('Touchdown') ):
         ras_local = ra.array
         ras_slices = library.runs_of_ones(ras_local)
-        for ra_slice in ras_slices:                    
+        
+        # put together runs separated by short drop-outs        
+        ras_slicesb = library.slices_remove_small_gaps(ras_slices, time_limit=2, hz=1)        
+        for ra_slice in ras_slicesb:                    
             is_post_liftoff =  (ra_slice.start - off.get_first().index) > 10 
             is_pre_touchdown = (td.get_first().index - ra_slice.start ) > 10 
             duration = ra_slice.stop-ra_slice.start                     
@@ -172,6 +175,35 @@ def tcas_vert_spd_down(tcas_down, vert_speed, tcas_vert):
     else: 
         print 'Other initial down: ', tcas_down
         return None
+
+
+def update_std_vert_spd(t, lag_end, cmb_ctl, up, down, acceleration, required_fpm, 
+                        std_vert_spd, init_vert_spd, vert_spd):
+    new_std_vert_spd = std_vert_spd    
+    if cmb_ctl in ('Clear of Conflict','No Advzy'):
+        new_std_vert_spd = vert_spd
+    elif t<lag_end: # not responding yet
+        new_std_vert_spd = init_vert_spd
+    elif cmb_ctl == 'Down Advisory Corrective' or down.lower()!='no down advisory':
+        if std_vert_spd>required_fpm: 
+            new_std_vert_spd = std_vert_spd - acceleration            
+        if new_std_vert_spd<=required_fpm: 
+            new_std_vert_spd = required_fpm #correct overshoot
+    elif cmb_ctl == 'Up Advisory Corrective'  or up.lower()!='no up advisory':
+        if std_vert_spd<required_fpm: 
+            new_std_vert_spd = std_vert_spd + acceleration
+        if new_std_vert_spd>=required_fpm: 
+            new_std_vert_spd = required_fpm #correct overshoot
+    elif cmb_ctl in ('Preventive', 'Drop Track', 'Altitude Lost'):
+        new_std_vert_spd = std_vert_spd
+    else: #better have a look
+        print 'RA Std Response Unknown: ', t, cmb_ctl
+        new_std_vert_spd = vert_spd
+        #pdb.set_trace()    
+    #print 't,\t lag_end,\t cmb_ctl\t, acceleration, required_fpm, std_vert_spd, vert_spd'
+    #print t, lag_end, cmb_ctl, acceleration, required_fpm, std_vert_spd, vert_spd
+    #pdb.set_trace()
+    return new_std_vert_spd
 
 
 def plot_mapped_array(plt, myaxis, states, mapped_array, title="", series_format="g"):
@@ -271,34 +303,6 @@ def ra_plot(array_dict, tcas_ra_array, tcas_ctl_array, tcas_up_array, tcas_down_
     return plt
     
 
-def update_std_vert_spd(t, lag_end, cmb_ctl, acceleration, required_fpm, std_vert_spd, init_vert_spd, vert_spd):
-    new_std_vert_spd = std_vert_spd    
-    if cmb_ctl in ('Clear of Conflict','No Advzy'):
-        new_std_vert_spd = vert_spd
-    elif t<lag_end: # not responding yet
-        new_std_vert_spd = init_vert_spd
-    elif cmb_ctl == 'Down Advisory Corrective':
-        if std_vert_spd>required_fpm: 
-            new_std_vert_spd = std_vert_spd - acceleration            
-        if new_std_vert_spd<=required_fpm: 
-            new_std_vert_spd = required_fpm #correct overshoot
-    elif cmb_ctl == 'Up Advisory Corrective':
-        if std_vert_spd<required_fpm: 
-            new_std_vert_spd = std_vert_spd + acceleration
-        if new_std_vert_spd>=required_fpm: 
-            new_std_vert_spd = required_fpm #correct overshoot
-    elif cmb_ctl in ('Preventive', 'Drop Track', 'Altitude Lost'):
-        new_std_vert_spd = std_vert_spd
-    else: #better have a look
-        print 'RA Std Response Unknown: ', t, cmb_ctl
-        new_std_vert_spd = vert_spd
-        #pdb.set_trace()    
-    #print 't,\t lag_end,\t cmb_ctl\t, acceleration, required_fpm, std_vert_spd, vert_spd'
-    #print t, lag_end, cmb_ctl, acceleration, required_fpm, std_vert_spd, vert_spd
-    #pdb.set_trace()
-    return new_std_vert_spd
-
-
 #"""
 class TCASRAResponsePlot(DerivedParameterNode):
     '''dummy node for diagnostic plotting '''
@@ -338,15 +342,16 @@ class TCASRAResponsePlot(DerivedParameterNode):
 class TCASAltitudeExceedance(KeyPointValueNode):
     '''Actual vs Standard Response.  Assumes 1 hz params'''
     name = 'TCAS RA Altitude Exceedance'
-    def derive(self, ra_sections=S('TCAS RA Sections'), tcas_ctl=M('TCAS Combined Control'),
+    def derive(self, ra_sections=S('TCAS RA Sections'),  tcas_ctl=M('TCAS Combined Control'),
+                     tcas_up   =  M('TCAS Up Advisory'), tcas_down =  M('TCAS Down Advisory'), 
                      std=P('TCAS RA Standard Response'), vertspd=P('Vertical Speed') ):
         for ra in ra_sections:
             exceedance=0
             deviation=0
             for t in range(int(ra.start_edge), int(ra.stop_edge)): 
-                if tcas_ctl.array[t] == 'Down Advisory Corrective':
+                if tcas_ctl.array[t] == 'Down Advisory Corrective' or tcas_down.array[t].lower()!='no down advisory':
                     deviation =  max(vertspd.array[t] - std.array[t], 0)
-                elif tcas_ctl.array[t] == 'Up Advisory Corrective':
+                elif tcas_ctl.array[t] == 'Up Advisory Corrective' or tcas_up.array[t].lower()!='no up advisory':
                     deviation =  max(std.array[t] - vertspd.array[t], 0)
                 else:
                     deviation = abs(vertspd.array[t] - std.array[t])
@@ -355,6 +360,7 @@ class TCASAltitudeExceedance(KeyPointValueNode):
                 if deviation and deviation!=0:
                     exceedance += deviation
             print 'Alt Exceed', exceedance
+            exceedance = exceedance / 60.0 # min to sec
             self.create_kpv(ra.start_edge, exceedance)
 
 #""" 
@@ -403,9 +409,9 @@ class TCASRAStandardResponse(DerivedParameterNode):
             for t in range(int(ra.start_edge), int(ra.stop_edge)+1):               
                 # set required_fpm for initial ra or a change in command
                 if ra_ctl_prev!=tcas_ctl.array[t] or up_prev!=tcas_up.array[t] or down_prev!=tcas_down.array[t]:                        
-                    if tcas_ctl.array[t] == 'Up Advisory Corrective':
+                    if tcas_ctl.array[t] == 'Up Advisory Corrective' or tcas_up.array[t].lower()!='no up advisory':
                         required_fpm = tcas_vert_spd_up(tcas_up.array[t], vertspd.array[t], tcas_vert.array[t])                            
-                    elif tcas_ctl.array[t] == 'Down Advisory Corrective':
+                    elif tcas_ctl.array[t] == 'Down Advisory Corrective'  or tcas_down.array[t].lower()!='no down advisory':
                         required_fpm = tcas_vert_spd_down(tcas_down.array[t], vertspd.array[t], tcas_vert.array[t])
                     else:
                         required_fpm = vertspd.array[t]
@@ -417,8 +423,9 @@ class TCASRAStandardResponse(DerivedParameterNode):
                     self.warning('TCAS RA Standard Response: No required_fpm found. Take a look! '+str(t))                
                     #pdb.set_trace()                        
 
-                std_vert_spd= update_std_vert_spd(t, lag_end, tcas_ctl.array[t], acceleration, 
-                                                  required_fpm, std_vert_spd, initial_vert_spd, vertspd.array[t])
+                std_vert_spd= update_std_vert_spd(t, lag_end, tcas_ctl.array[t], tcas_up.array[t], tcas_down.array[t],
+                                                  acceleration, required_fpm, 
+                                                  std_vert_spd, initial_vert_spd, vertspd.array[t])
                 self.array.data[t] = std_vert_spd
                 self.array.mask[t] = False
                 required_fpm_array[t] = required_fpm
@@ -768,7 +775,7 @@ def ra_redo():
             group by f.file_path
             """
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    #files_to_process =  [ f for f in files_to_process if ('N507JT' in f) and ('REC01209' in f)]
+    #files_to_process =  [ f for f in files_to_process if ('N563JB' in f)]
     return repo, files_to_process
 
 if __name__=='__main__':
