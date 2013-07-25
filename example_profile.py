@@ -157,7 +157,7 @@ def test_sql_jfk():
                  where 
                     file_repository='central' 
                     and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
-                    and rownum<15
+                    --and rownum<15
                     """
     files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
     repo='central'
@@ -170,10 +170,23 @@ def test_sql_jfk_local():
                  where 
                     file_repository='REPO' 
                     and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
-                    and rownum<15
+                    --and rownum<15
                     """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
     return repo, files_to_process
+
+
+def fll_local():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    repo='local'
+    query = """select distinct file_path from fds_flight_record 
+                 where 
+                    file_repository='REPO' 
+                    and dest_icao in ('KFLL')
+                    """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query) #[:40]
+    return repo, files_to_process
+
 
 def test_kpv_range():
     '''run against flights with select kpv values.
@@ -203,7 +216,7 @@ def test_kpv_range():
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'example_keith' + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS = test_sql_jfk() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    FILE_REPOSITORY, FILES_TO_PROCESS = test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
     COMMENT   = 'test file repos'
     LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True

@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Test of ipython parallel on the example profile module
+  in initial tests, it is running 3-4x faster than single process
+  when running with 8 engines -- I/O is the constraint.
+  
+  via VPN, it is running 6.5 to 8 flights per seconds on this profile.
+
 @author: KEITHC, July 2013
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
@@ -144,7 +149,7 @@ def test_sql_jfk():
                  where 
                     file_repository='central' 
                     and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
-                    and rownum<15
+                    --and rownum<15
                     """
     files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
     repo='central'
@@ -157,11 +162,28 @@ def test_sql_jfk_local():
                  where 
                     file_repository='REPO' 
                     and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
-                    and rownum<15
+                    --and rownum<15
                     """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
+    files_to_process = fds_oracle.flight_record_filepaths(query) #[:40]
     return repo, files_to_process
 
+
+def fll_local():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    repo='local'
+    query = """select distinct file_path from fds_flight_record 
+                 where file_repository='local' and dest_icao in ('KFLL')""".replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query) 
+    return repo, files_to_process
+
+def jfk_local():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    repo='local'
+    query = """select distinct file_path from fds_flight_record 
+                 where file_repository='local' and dest_icao in ('KJFK')""".replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query) 
+    return repo, files_to_process
+    
 def test_kpv_range():
     '''run against flights with select kpv values.
         TODO check how do multi-state params work
@@ -208,8 +230,10 @@ def run_profile(files_to_process):
     helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, COMMENT, MAKE_KML_FILES, file_repository ) 
     return True
     
-###TODO: Wire up logging to STDOUT
+###TODO: Wire up logging to STDOUT?
 if __name__=='__main__':
+    FILE_REPOSITORY, FILES_TO_PROCESS = jfk_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    ########################################################################### 
     print "Run 'ipcluster start -n 4' from the command line first!"
     import time
     from IPython.parallel import Client
@@ -222,13 +246,13 @@ if __name__=='__main__':
     t0 = time.time()
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print module_names    
-    FILE_REPOSITORY, FILES_TO_PROCESS = test_sql_jfk() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    dview['PROFILE_NAME']    = 'example_keith' + '-'+ socket.gethostname()   
+    print 'file count:', len(FILES_TO_PROCESS)
+    dview['PROFILE_NAME']    = 'parallel' + '-'+ socket.gethostname()   
     dview['module_names']    = module_names 
     dview['file_repository'] = FILE_REPOSITORY
     
     partitioned_files = partition(FILES_TO_PROCESS, engine_count)
-    print partitioned_files
+    #print partitioned_files
     #dview['REPO'] = FILE_REPOSITORY   
     #run_profile(FILES_TO_PROCESS)  #set repo manually for now
     
