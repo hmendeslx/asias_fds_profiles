@@ -143,6 +143,16 @@ def test10():
     repo='keith'
     return repo, files_to_process
     
+
+def test100():
+    '''quick test set'''
+    input_dir  = settings.BASE_DATA_PATH + settings.OPERATOR_FOLDER +'2012-07-13/'
+    print input_dir
+    files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))[:100]
+    repo='keith'
+    return repo, files_to_process
+
+
 def test_sql_jfk():
     '''sample test set based on query from Oracle fds_flight_record'''
     query = """select distinct file_path from fds_flight_record 
@@ -232,7 +242,7 @@ def run_profile(files_to_process):
     
 ###TODO: Wire up logging to STDOUT?
 if __name__=='__main__':
-    FILE_REPOSITORY, FILES_TO_PROCESS = jfk_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    FILE_REPOSITORY, FILES_TO_PROCESS = test10_shared() #jfk_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
     ########################################################################### 
     print "Run 'ipcluster start -n 4' from the command line first!"
     import time
