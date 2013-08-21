@@ -5,12 +5,14 @@ Created on Thu Aug 15 08:13:59 2013
 
 @author: KEITHC
 """
+from __future__ import division
 import types
 import inspect
 import logging
-import datetime 
+import datetime, time, calendar
 
 import numpy  as np
+from numpy import NaN
 import pandas as pd
 import pylab
 import networkx as nx
@@ -18,16 +20,47 @@ import networkx as nx
 import analysis_engine
 import analysis_engine.node as node
 import hdfaccess.file
-
 from analysis_engine import settings
+
+import analyser_custom_settings
 import staged_helper  as helper  
 from staged_helper import Flight, get_deps_series
+
+FFD_DIR=analyser_custom_settings.FFD_PATH
+ffd_master = pd.read_csv(FFD_DIR+'FFDparameters.txt',sep='\t')
+ffd_master.index = ffd_master['DISPLAY_NAME']
+
+def search_ffd(ffd_pmeta, term):
+    '''search through list of parameters in the parameter meta-data for an FFD file, return partial matches
+        ffd_pmeta = ffd parameter metadata for a flight (a DataFrame)    
+        ffd_master = master list of ffd parameters
+    '''
+    matching_names =  [p for p in ffd_pmeta.index if str(p).upper().find(term.upper())>=0]
+    df = pd.DataFrame({'FFD Name': matching_names })
+    df['FFD DATA_TYPE'] = [ ffd_pmeta.ix[nm]['DATA_TYPE'] for nm in matching_names]
+    df['STATES'] = [ ffd_master.ix[nm]['STATES'] if nm in ffd_master.index else 'not in master' for nm in matching_names]
+    df['FFD UNITS'] = [ ffd_master.ix[nm]['UNITS']  if nm in ffd_master.index  else 'not in master' for nm in matching_names]
+    df['dtype'] = [ ffd_pmeta.ix[nm]['dtype']  if nm in ffd_master.index  else 'not in master' for nm in matching_names]
+    return df
+
+
+def search_ffd_master(term):
+    '''search through list of parameters in the parameter meta-data for an FFD file, return partial matches
+        ffd_master = master list of ffd parameters
+    '''
+    matching_names =  [p for p in ffd_master.index if str(p).upper().find(term.upper())>=0]
+    df = pd.DataFrame({'FFD Name': matching_names })
+    df['FFD TYPE'] = [ ffd_master.ix[nm]['TYPE'] for nm in matching_names]
+    df['STATES'] = [ ffd_master.ix[nm]['STATES'] if nm in ffd_master.index else 'not in master' for nm in matching_names]
+    df['FFD UNITS'] = [ ffd_master.ix[nm]['UNITS'] if nm in ffd_master.index else 'not in master' for nm in matching_names]
+    return df
 
         
 def module_functions(mymodule):
     '''list non-private functions in a module'''
     return  [a for a in dir(mymodule) if isinstance(mymodule.__dict__.get(a), types.FunctionType) and a[0]!='_']
-      
+
+
 def timestamp():
     '''use to include a timestamp in a notebook'''
     n=datetime.datetime.now()
@@ -35,24 +68,26 @@ def timestamp():
     
          
 # add info: lfl flag, type, frequency, valid, count, mask count
-def hdf_search(myhdf5, search_term):
+def search_hdf(myhdf5, search_term):
     '''search over Series in an hdf5 file.  Partial matches ok; not case sensitive. 
 	  e.g. param_search(ff, 'Accel')
     '''
-    matching_names= [k for k in myhdf5.keys() if k.upper().find(search_term.upper())>=0]
-    df = pd.DataFrame({'name': matching_names })
-    df['recorded']= [ ('T' if myhdf5.get(nm).lfl else 'F') for nm in matching_names]
-    df['frequency']= [ myhdf5.get(nm).frequency for nm in matching_names]
-    df['data_type']= [ myhdf5.get(nm).data_type for nm in matching_names]    
-    df['units']= [ (myhdf5.get(nm).units if myhdf5.get(nm).units else '') for nm in matching_names]
+    series = myhdf5.series
+    matching_names= [k for k in series.keys() if k.upper().find(search_term.upper())>=0]
+    df = pd.DataFrame({'FDS name': matching_names })
+    #df['recorded']= [ ('T' if myhdf5.get(nm).lfl else 'F') for nm in matching_names]
+    df['recorded']= [ (nm in myhdf5.lfl_params) for nm in matching_names]
+    df['frequency']= [ series.get(nm).frequency for nm in matching_names]
+    df['data_type']= [ series.get(nm).data_type for nm in matching_names]    
+    df['units']= [ (series.get(nm).units if series.get(nm).units else '') for nm in matching_names]
     
     values = []
     for nm in matching_names:
-        if type(myhdf5.get(nm)) ==node.MultistateDerivedParameterNode:
-            values.append(myhdf5.get(nm).values_mapping)
+        if type(series.get(nm)) ==node.MultistateDerivedParameterNode:
+            values.append(series.get(nm).values_mapping)
         else:
             values.append('n/a')
-    df['values']= values
+    df['FDS values']= values
     return df
 
 
@@ -258,5 +293,9 @@ if __name__=='__main__':
     base_nodes = helper.get_derived_nodes(settings.NODE_MODULES)
     print node_search(base_nodes, 'flap')
     
+    print 'master gear', ffd_master.get('Landing Gear Locked Down N')
+    
+    print 'master head', ffd_master.head()
+    print search_ffd_master('flap')
     #hdf_plot(series['Vertical Speed'])
     print 'done'    
