@@ -71,7 +71,7 @@ def sustained_max_abs(Param,window=3):
         addint=int(add)
         
     shift=np.zeros(shape=(2*addint+1,len(Param.array)))
-    for c in range(-addint,addint):
+    for c in range(-addint,addint+1):
         shift[c+addint]=np.roll(absparam,c,axis=0)
     x.data[:]=shift.max(axis=0)        
         
@@ -93,7 +93,7 @@ def sustained_max(Param,window=3):
         addint=int(add)
     #pdb.set_trace()
     shift=np.zeros(shape=(2*addint+1,len(Param.array)))
-    for c in range(-addint,addint):
+    for c in range(-addint,addint+1):
         shift[c+addint]=np.roll(Param.array,c,axis=0)
     x.data[:]=shift.min(axis=0)
     #length=len(Param.array)
@@ -115,7 +115,7 @@ def sustained_min(Param,window=3):
         addint=int(add)
         
     shift=np.zeros(shape=(2*addint+1,len(Param.array)))
-    for c in range(-addint,addint):
+    for c in range(-addint,addint+1):
         shift[c+addint]=np.roll(Param.array,c,axis=0)
     x.data[:]=shift.max(axis=0)
     
@@ -1059,13 +1059,25 @@ def test_sql_ua_apts():
                     """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
+    
+def test_sql_ua_sustained():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    repo = 'central'
+    query = """select file_path from fds_flight_record 
+                 where 
+                    file_repository='REPO'
+                    and base_file_path = 'N509JB_REC01668_DAT_001_cleansed_base.hdf5'
+                    """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
+
 
 def test_sql_ua_all():
     '''sample test set based on query from Oracle fds_flight_record'''
     repo = 'central'
     query = """select file_path from fds_flight_record 
                  where 
-                    file_repository='REPO'    
+                    file_repository='REPO' 
                     """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
@@ -1124,7 +1136,7 @@ def pkl_check():
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'UAv1'  + '-'+ socket.gethostname()   
-    REPO, FILES_TO_PROCESS = test_sql_ua_all()  #test_sql_jfk_local() #test_kpv_range()  # test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
+    REPO, FILES_TO_PROCESS = test_sql_ua_all()   #test_sql_ua_sustained() #test_sql_jfk_local() #test_kpv_range()  #test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
     COMMENT   = 'UA with times'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
