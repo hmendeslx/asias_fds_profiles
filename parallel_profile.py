@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Example profile module: defines a set of measures that run against 
-FDS' FlightDataAnalyzer base data.
+Test of ipython parallel on the example profile module
+  in initial tests, it is running 3-4x faster than single process
+  when running with 8 engines -- I/O is the constraint.
+  
+  via VPN, it is running 6.5 to 8 flights per seconds on this profile.
 
-@author: KEITHC, April 2013
+@author: KEITHC, July 2013
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
 import pdb
+
 import os, glob, socket
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
                                    App, ApproachNode,                      # per approach
@@ -27,10 +31,9 @@ from analysis_engine.node import ( A,   FlightAttributeNode,               # one
 from analysis_engine.library import (integrate, repair_mask, index_at_value, all_of, any_of)
 # asias_fds stuff
 import analyser_custom_settings as settings
-import staged_helper  as helper 
+#import staged_helper  as helper 
 import fds_oracle
 
-   
 ### Section 2: measure definitions -- attributes, KTI, phase/section, KPV, DerivedParameter
 #      DerivedParameters will cause a set of hdf5 files to be generated.
 class SimpleAttribute(FlightAttributeNode):
@@ -113,18 +116,7 @@ class InitialApproach(FlightPhaseNode):
         return
 
    
-"""
-class DistanceTravelledInAir(DerivedParameterNode):
-    '''a simple derived parameter = a new time series'''
-    units='nm'
-    def derive(self, airspeed=P('Airspeed True'), grounded=S('Grounded') ):
-        for section in grounded:                      # zero out travel on the ground
-            airspeed.array[section.slice]=0.0         # this is already a copy 
-        repaired_array = repair_mask(airspeed.array)  # to avoid integration hiccups 
-        adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
-        self.array = adist
-        #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
-"""
+
 
 ### Section 3: pre-defined test sets
 def tiny_test():
@@ -151,6 +143,7 @@ def test10():
     repo='keith'
     return repo, files_to_process
     
+
 def test100():
     '''quick test set'''
     input_dir  = settings.BASE_DATA_PATH + settings.OPERATOR_FOLDER +'2012-07-13/'
@@ -158,9 +151,8 @@ def test100():
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))[:100]
     repo='keith'
     return repo, files_to_process
-    
-    
-    
+
+
 def test_sql_jfk():
     '''sample test set based on query from Oracle fds_flight_record'''
     query = """select distinct file_path from fds_flight_record 
@@ -182,7 +174,7 @@ def test_sql_jfk_local():
                     and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
                     --and rownum<15
                     """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
+    files_to_process = fds_oracle.flight_record_filepaths(query) #[:40]
     return repo, files_to_process
 
 
@@ -190,14 +182,18 @@ def fll_local():
     '''sample test set based on query from Oracle fds_flight_record'''
     repo='local'
     query = """select distinct file_path from fds_flight_record 
-                 where 
-                    file_repository='REPO' 
-                    and dest_icao in ('KFLL')
-                    """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query) #[:40]
+                 where file_repository='local' and dest_icao in ('KFLL')""".replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query) 
     return repo, files_to_process
 
-
+def jfk_local():
+    '''sample test set based on query from Oracle fds_flight_record'''
+    repo='local'
+    query = """select distinct file_path from fds_flight_record 
+                 where file_repository='local' and dest_icao in ('KJFK')""".replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query) 
+    return repo, files_to_process
+    
 def test_kpv_range():
     '''run against flights with select kpv values.
         TODO check how do multi-state params work
@@ -220,19 +216,59 @@ def test_kpv_range():
     repo='keith'
     return repo, files_to_process
 
-    return files_to_process
-    
 
-if __name__=='__main__':
+def partition(lst, n):
+    '''return a list of n lists with nearly equal size
+        from http://stackoverflow.com/questions/2659900/python-slicing-a-list-into-n-nearly-equal-length-partitions
+    '''
+    division = len(lst) / float(n)
+    return [ lst[int(round(division * i)): int(round(division * (i + 1)))] for i in xrange(n) ]
+
+
+
+# map() friendly version of main    
+def run_profile(files_to_process):
+    import staged_helper as helper
+    import sys
+    sys.path.append('c:/asias_fds/asias_fds_profiles')
     ###CONFIGURATION options###################################################
-    PROFILE_NAME = 'example_keith' + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS = tiny_test() # test10() #test10() #test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
     COMMENT   = 'test file repos'
     LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
-    ###########################################################################
-    
-    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    ###########################################################################    
     print 'profile', PROFILE_NAME 
-    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, FILE_REPOSITORY )
+    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, COMMENT, MAKE_KML_FILES, file_repository ) 
+    return True
     
+###TODO: Wire up logging to STDOUT?
+if __name__=='__main__':
+    FILE_REPOSITORY, FILES_TO_PROCESS = test10_shared() #jfk_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    ########################################################################### 
+    print "Run 'ipcluster start -n 4' from the command line first!"
+    import time
+    from IPython.parallel import Client
+    c=Client()
+    print c.ids
+    engine_count = len(c.ids)
+    dview = c[:]  #DirectView list of engines
+    dview.block = True
+
+    t0 = time.time()
+    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    print module_names    
+    print 'file count:', len(FILES_TO_PROCESS)
+    dview['PROFILE_NAME']    = 'parallel' + '-'+ socket.gethostname()   
+    dview['module_names']    = module_names 
+    dview['file_repository'] = FILE_REPOSITORY
+    
+    partitioned_files = partition(FILES_TO_PROCESS, engine_count)
+    #print partitioned_files
+    #dview['REPO'] = FILE_REPOSITORY   
+    #run_profile(FILES_TO_PROCESS)  #set repo manually for now
+    
+    # single process version    
+    #res = map(run_profile, FILES_TO_PROCESS)
+    # parallel version
+    res =  dview.map_sync(run_profile, partitioned_files)        
+    print 'time', time.time()-t0
+    print 'done'

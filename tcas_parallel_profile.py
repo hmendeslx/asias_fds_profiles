@@ -620,15 +620,37 @@ def ra_redo():
 
 
 if __name__=='__main__':
-    ###CONFIGURATION options###################################################
-    PROFILE_NAME = 'tcas_keith'  + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS = ra_redo() #ra_all_sweep() #ra_measure_set_central() #ra_measure_set_sfo() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
-    COMMENT   = 'recalc all using series TCAS RA instead of Combined Control'
-    LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
-    MAKE_KML_FILES=False    # Run times are much slower when KML is True
-    ###########################################################################
-    
-    module_names = [ os.path.basename(__file__).replace('.py','') ] #helper.get_short_profile_name(__file__)   # profile name = the name of this file
-    print 'profile', PROFILE_NAME 
-    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, FILE_REPOSITORY )
+    print "Run 'ipcluster start -n 4' from the command line first!"
+    import time
+    from IPython.parallel import Client
+    c=Client()
+    print c.ids
+    engine_count = len(c.ids)
+    dview = c[:]  #DirectView list of engines
+    dview.block = True
+    with dview.sync_imports():
+        import staged_helper as helper
 
+    t0 = time.time()
+    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    print module_names    
+    ###CONFIGURATION ######################################################### 
+    dview['COMMENT'] = 'test tcas parallel'
+    FILE_REPOSITORY, FILES_TO_PROCESS = ra_redo() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    dview['LOG_LEVEL'] = 'INFO'   
+    PROFILE_NAME = 'tcas_keith' + '-'+ socket.gethostname()   
+    dview['MAKE_KML_FILES'] = False
+    ###############################################################
+    dview['module_names']    = module_names 
+    dview['PROFILE_NAME'] = PROFILE_NAME
+    dview.scatter('files_to_process', FILES_TO_PROCESS)
+    dview['file_repository'] = FILE_REPOSITORY    
+    print 'file count:', len(FILES_TO_PROCESS)
+    print 'profile', PROFILE_NAME 
+    
+    def eng_profile():
+        helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, COMMENT, MAKE_KML_FILES, file_repository ) 
+    dview.apply(eng_profile) 
+
+    print 'time', time.time()-t0
+    print 'done'
