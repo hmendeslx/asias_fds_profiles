@@ -7,6 +7,7 @@ Example profile module: defines a set of measures that run against Analyzer base
       save comments only to job records, not flight records.
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
+import pdb
 import os, glob, socket
 import numpy as np
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
@@ -55,6 +56,75 @@ Low Power -- add AT settings??
 Late Gear -- -done
 Late Flaps --(AltitudeAtLastFlapChangeBeforeTouchdown)
 '''
+
+def sustained_max_abs(Param,window=3):
+    '''
+    sustained max function for sustained events, window default of 3 sec (+/- 1.5)
+    must use at least 3 samples (+/-1 sample)
+    '''
+    x=np.ma.zeros(len(Param.array))
+    add=Param.frequency*window/2
+    absparam=abs(Param.array)
+    if add<1.0:
+        addint=1
+    else:
+        addint=int(add)
+        
+    shift=np.zeros(shape=(2*addint+1,len(Param.array)))
+    for c in range(-addint,addint):
+        shift[c+addint]=np.roll(absparam,c,axis=0)
+    x.data[:]=shift.max(axis=0)        
+        
+    #length=len(Param.array)
+    #for c in range(addint,length):
+    #    x.data[c]=np.min(absparam[c-addint:c+addint+1])
+    return x
+
+def sustained_max(Param,window=3):
+    '''
+    sustained max function for sustained events, window default of 3 sec (+/- 1.5)
+    must use at least 3 samples (+/-1 sample)
+    '''
+    x=np.ma.zeros(len(Param.array))
+    add=Param.frequency*window/2
+    if add<1.0:
+        addint=1
+    else:
+        addint=int(add)
+    #pdb.set_trace()
+    shift=np.zeros(shape=(2*addint+1,len(Param.array)))
+    for c in range(-addint,addint):
+        shift[c+addint]=np.roll(Param.array,c,axis=0)
+    x.data[:]=shift.min(axis=0)
+    #length=len(Param.array)
+    #for c in range(addint,length):
+    #    x.data[c]=np.min(Param.array[c-addint:c+addint+1])
+    return x
+        
+def sustained_min(Param,window=3):
+    '''
+    sustained min function for sustained events, window default of 3 sec (+/- 1.5)
+    must use at least 3 samples (+/-1 sample)
+    '''
+    #pdb.set_trace()    
+    x=np.ma.zeros(len(Param.array))
+    add=Param.frequency*window/2
+    if add<1.0:
+        addint=1
+    else:
+        addint=int(add)
+        
+    shift=np.zeros(shape=(2*addint+1,len(Param.array)))
+    for c in range(-addint,addint):
+        shift[c+addint]=np.roll(Param.array,c,axis=0)
+    x.data[:]=shift.max(axis=0)
+    
+    #length=len(Param.array)
+    #for c in range(addint,length):
+    #    x.data[c]=np.max(Param.array[c-addint:c+addint+1])
+    return x
+    
+
 class A320(VelocitySpeed):
     '''
     Velocity speed tables for Airbus A320.
@@ -297,7 +367,362 @@ class AirspeedReferenceVref(FlightAttributeNode):
  
                     #self.array[_slice] = vspeed
                             
-                            
+'''
+Sustained UA metrics
+'''                            
+class AirspeedRelativeMin3Sec1000to500ftHAT (KeyPointValueNode):
+    '''CAS-Vref 1000 to 500 ft HAT'''
+    name = 'Airspeed Relative 1000 to 500 ft HAT Min (3 sec)'
+    units = 'kts'
+    
+    @classmethod
+    def can_operate(cls, available):
+        vref = 'Vref (Recorded then Lookup)' in available
+        return vref
+    
+    def derive(self,
+               #vref=P('Vref (Recorded then Lookup)'),
+               vref=A('Vref (Recorded then Lookup)'),
+               cas=P('Airspeed'),
+               altitude=P('Altitude AAL'),
+               touchdowns=KTI('Touchdown'),
+               approaches=S('Approach And Landing')):
+        
+        cas_run = sustained_min(cas)
+        for app in approaches:          
+            if vref.value is not None:
+                cas_vref=cas_run.data-vref.value
+                self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),min_value)
+            else:
+                return
+                
+class AirspeedRelativeMax3Sec1000to500ftHAT (KeyPointValueNode):
+    '''CAS-Vref 1000 to 500 ft HAT'''
+    name = 'Airspeed Relative 1000 to 500 ft HAT Max (3 sec)'
+    units = 'kts'
+    
+    @classmethod
+    def can_operate(cls, available):
+        vref = 'Vref (Recorded then Lookup)' in available
+        return vref
+    
+    def derive(self,
+               #vref=P('Vref (Recorded then Lookup)'),
+               vref=A('Vref (Recorded then Lookup)'),
+               cas=P('Airspeed'),
+               altitude=P('Altitude AAL'),
+               touchdowns=KTI('Touchdown'),
+               approaches=S('Approach And Landing')):
+                   
+        cas_run = sustained_max(cas)
+        for app in approaches:  
+            if vref.value is not None:
+                cas_vref=cas_run.data-vref.value
+                self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),max_value)
+            else:
+                return
+
+class AirspeedRelativeMax3Sec500to50ftHAT (KeyPointValueNode):
+    '''CAS-Vref 500 to 50 ft HAT'''
+    name = 'Airspeed Relative 500 to 50 ft HAT Max (3 sec)'
+    units = 'kts'
+    
+    @classmethod
+    def can_operate(cls, available):
+        vref = 'Vref (Recorded then Lookup)' in available
+        return vref    
+    
+    def derive(self,
+               #vref=P('Vref (Recorded then Lookup)'),
+               vref=A('Vref (Recorded then Lookup)'),
+               cas=P('Airspeed'),
+               altitude=P('Altitude AAL'),
+               touchdowns=KTI('Touchdown'),
+               approaches=S('Approach And Landing')):
+        
+        cas_run = sustained_max(cas)
+        for app in approaches:  
+            if vref.value is not None:            
+                cas_vref=cas_run.data-vref.value
+                self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),max_value)
+            else:
+                return
+            
+class AirspeedRelativeMin3sec500to50ftHAT (KeyPointValueNode):
+    '''CAS-Vref 500 to 50 ft HAT'''
+    name = 'Airspeed Relative 500 to 50 ft HAT Min (3 sec)'
+    units = 'kts'
+
+    @classmethod
+    def can_operate(cls, available):
+        vref = 'Vref (Recorded then Lookup)' in available
+        return vref
+
+    def derive(self,
+               #vref=P('Vref (Recorded then Lookup)'),
+               vref=A('Vref (Recorded then Lookup)'),
+               cas=P('Airspeed'),
+               altitude=P('Altitude AAL'),
+               touchdowns=KTI('Touchdown'),
+               approaches=S('Approach And Landing')):
+        cas_run = sustained_min(cas)
+        for app in approaches:       
+            if vref.value is not None:               
+                cas_vref=cas_run.data-vref.value
+                self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),min_value)
+            else:
+                return
+
+class GlideslopeDeviation5Sec1000To500FtMax(KeyPointValueNode):
+    '''
+    Determine maximum deviation from the glideslope between 1000 and 500 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Glideslope Deviation 1000 To 500 Ft Max (5 sec)'
+    units = 'dots'
+
+    def derive(self,
+               ils_glideslope=P('ILS Glideslope'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Glideslope Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(1000, 500)
+        ils_run = sustained_max(ils_glideslope, window=5)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_glideslope:
+            self.create_kpvs_within_slices(
+                ils_run.data,
+                alt_bands,
+                max_value,
+            )
+        else:
+            self.warning("ILS Glideslope not measured on approach")            
+            return
+        
+class GlideslopeDeviation5Sec500To200FtMax(KeyPointValueNode):
+    '''
+    Determine maximum deviation from the glideslope between 500 and 200 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Glideslope Deviation 500 To 200 Ft Max (5 sec)'
+    units = 'dots'
+
+    def derive(self,
+               ils_glideslope=P('ILS Glideslope'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Glideslope Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(500, 200)
+        ils_run = sustained_max(ils_glideslope, window=5)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_glideslope:
+            self.create_kpvs_within_slices(
+                ils_run.data,
+                alt_bands,
+                max_value,
+            )
+        else:
+            self.warning("ILS Glideslope not measured on approach")            
+            return
+        
+class GlideslopeDeviation5Sec1000To500FtMin(KeyPointValueNode):
+    '''
+    Determine minimium deviation from the glideslope between 1000 and 500 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Glideslope Deviation 1000 To 500 Ft Min (5 sec)'
+    units = 'dots'
+
+    def derive(self,
+               ils_glideslope=P('ILS Glideslope'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Glideslope Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(1000, 500)
+        ils_run = sustained_min(ils_glideslope, window=5)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_glideslope:
+            self.create_kpvs_within_slices(
+                ils_run.data,
+                alt_bands,
+                min_value,
+            )
+        else:
+            self.warning("ILS Glideslope not measured on approach")            
+            return
+        
+class GlideslopeDeviation5Sec500To200FtMin(KeyPointValueNode):
+    '''
+    Determine minimium deviation from the glideslope between 500 and 200 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Glideslope Deviation 500 To 200 Ft Min (5 sec)'
+    units = 'dots'
+
+    def derive(self,
+               ils_glideslope=P('ILS Glideslope'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Glideslope Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(500, 200)
+        ils_run = sustained_min(ils_glideslope, window=5)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_glideslope:
+            self.create_kpvs_within_slices(
+                ils_run.data,
+                alt_bands,
+                min_value,
+            )
+        else:
+            self.warning("ILS Glideslope not measured on approach")            
+            return
+
+class LocalizerDeviation5Sec500To50FtMax(KeyPointValueNode):
+    '''
+    Determine maximum absolute deviation from the localizer between 500 and 50 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Localizer Deviation 500 To 50 Ft Max (5 sec)'
+    units = 'dots'
+
+    def derive(self,
+               ils_localizer=P('ILS Localizer'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Localizer Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(500, 50)
+        ils_run = sustained_max_abs(ils_localizer, window=5)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_localizer:
+            self.create_kpvs_within_slices(
+                abs(ils_run.data),
+                alt_bands,
+                max_abs_value,
+            )
+        else:
+            self.warning("ILS Localizer not measured on approach")            
+            return
+        
+class LocalizerDeviation5Sec1000To500FtMax(KeyPointValueNode):
+    '''
+    Determine maximum absolute deviation from the localizer between 1000 and 500 ft.
+    
+    ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
+    '''
+
+    name = 'Localizer Deviation 1000 To 500 Ft Max (5 sec)'
+    units = 'dots'
+
+    def derive(self,
+               ils_localizer=P('ILS Localizer'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               #ils_ests=S('ILS Localizer Established')
+               ):
+
+        alt_bands = alt_aal.slices_from_to(1000, 500)
+        ils_run = sustained_max_abs(ils_localizer, window=5)
+        #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
+        if ils_localizer:
+            self.create_kpvs_within_slices(
+                abs(ils_run.data),
+                alt_bands,
+                max_abs_value,
+            )
+        else:
+            self.warning("ILS Localizer not measured on approach")            
+            return
+
+
+class RateOfDescent3Sec1000To500FtMax(KeyPointValueNode):
+    '''
+    '''
+    name = 'Rate of Descent 1000 to 500 ft Max (3 sec)'
+    units = 'fpm'
+
+    def derive(self,
+               vrt_spd=P('Vertical Speed'),
+               alt_aal=P('Altitude AAL For Flight Phases')):
+
+        vsi_run=sustained_min(vrt_spd)        
+        self.create_kpvs_within_slices(
+            vsi_run.data,
+            alt_aal.slices_from_to(1000, 500),
+            min_value,
+        )
+
+
+class RateOfDescent3Sec500To50FtMax(KeyPointValueNode):
+    '''
+    '''
+    name = 'Rate of Descent 500 to 50 ft Max (3 sec)'
+    units = 'fpm'
+
+    def derive(self,
+               vrt_spd=P('Vertical Speed'),
+               alt_aal=P('Altitude AAL For Flight Phases')):
+
+        vsi_run=sustained_min(vrt_spd)          
+        self.create_kpvs_within_slices(
+            vsi_run.data,
+            alt_aal.slices_from_to(500, 50),
+            min_value,
+        )
+
+class EngN15Sec500To50FtMin(KeyPointValueNode):
+    '''
+    '''
+
+    name = 'Eng N1 500 To 50 Ft Min (5 sec)'
+    units = '%'
+
+    def derive(self,
+               eng_n1_min=P('Eng (*) N1 Min'),
+               alt_aal=P('Altitude AAL For Flight Phases')):
+        
+        eng_run=sustained_min(eng_n1_min, window=5)
+        self.create_kpvs_within_slices(
+            eng_run.data,
+            alt_aal.slices_from_to(500, 50),
+            min_value,
+        )
+
+class EngN15Sec1000To500FtMin(KeyPointValueNode):
+    '''
+    '''
+
+    name = 'Eng N1 1000 To 500 Ft Min (5 sec)'
+    units = '%'
+
+    def derive(self,
+               eng_n1_min=P('Eng (*) N1 Min'),
+               alt_aal=P('Altitude AAL For Flight Phases')):
+        
+        eng_run=sustained_min(eng_n1_min, window=5)
+        self.create_kpvs_within_slices(
+            eng_run.data,
+            alt_aal.slices_from_to(1000, 500),
+            min_value,
+        )
+
+'''
+Instantaneous UA metrics
+'''
+"""
 class AirspeedRelativeMax1000to500ftHAT (KeyPointValueNode):
     '''CAS-Vref 1000 to 500 ft HAT'''
     name = 'Airspeed Relative 1000 to 500 ft HAT Max'
@@ -340,7 +765,7 @@ class AirspeedRelativeMin1000to500ftHAT (KeyPointValueNode):
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
                approaches=S('Approach And Landing')):
-    
+        
         for app in approaches:          
             if vref.value is not None:
                 cas_vref=cas.array-vref.value
@@ -585,7 +1010,7 @@ class LocalizerDeviation1000To500FtMax(KeyPointValueNode):
         else:
             self.warning("ILS Localizer not measured on approach")            
             return
-
+"""
 ### Section 3: pre-defined test sets
 def tiny_test():
     '''quick test set'''
@@ -640,7 +1065,7 @@ def test_sql_ua_all():
     repo = 'central'
     query = """select file_path from fds_flight_record 
                  where 
-                    file_repository='REPO'                    
+                    file_repository='REPO'    
                     """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
@@ -677,7 +1102,7 @@ def local_check():
                  where f.base_file_path is not null 
                    and  f.file_repository='REPO'
                    and orig_icao='KJFK' and dest_icao in ('KFLL')
-                   and rownum < 10""".replace('REPO',repo)
+                   """.replace('REPO',repo)
    files_to_process = fds_oracle.flight_record_filepaths(query)
    return repo, files_to_process
 
@@ -698,9 +1123,9 @@ def pkl_check():
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    PROFILE_NAME = 'UA'  + '-'+ socket.gethostname()   
-    REPO, FILES_TO_PROCESS = test_sql_ua_all() #test_sql_jfk_local() # #test_kpv_range()  #test10()  #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts()
-    COMMENT   = 'big test'
+    PROFILE_NAME = 'UAv1'  + '-'+ socket.gethostname()   
+    REPO, FILES_TO_PROCESS = test_sql_ua_all()  #test_sql_jfk_local() #test_kpv_range()  # test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
+    COMMENT   = 'UA with times'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
