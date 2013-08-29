@@ -183,6 +183,29 @@ def get_profile_nodemanager(flt, myvars):
     return node_mgr
     
 
+def get_base_nodemanager(flt):
+    '''return a NodeManager for the current Flight object and profile definition
+         normally myvars will be set myvars=vars() from a notebook    
+    '''
+    # full set of computable nodes
+    all_nodes = helper.get_derived_nodes(settings.NODE_MODULES)  #all the FDS derived nodes
+    requested_nodes = all_nodes.copy()  # get Nodes defined in the current namespace
+    if requested_nodes.get('Configuration'):
+        del requested_nodes['Configuration']
+    for k,v in flt.series.items():  #hdf5 series
+        all_nodes[k]=v
+        
+    node_mgr = node.NodeManager( flt.start_datetime, 
+                        flt.duration, 
+                        flt.series.keys(), #ff.valid_param_names(),  
+                        requested_nodes.keys(), 
+                        all_nodes, # computable
+                        flt.aircraft_info,
+                        achieved_flight_record={'Myfile':flt.filepath, 'Mydict':dict()}
+                      )
+    return node_mgr
+
+
 def derive_many(flt, myvars, precomputed={}):
     '''simplified signature for deriving all nodes in a profile
         flt is an object of class Flight
