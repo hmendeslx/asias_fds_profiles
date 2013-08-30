@@ -171,6 +171,7 @@ def get_vspeed_map_mitre(series=None, family=None, engine_series=None, engine_ty
             #found = 'None'
             #return found
 
+"""
 class AirspeedReferenceVref(FlightAttributeNode):
     '''a simple derived parameter = a new time series'''
     name = 'Vref (Recorded then Lookup)'
@@ -370,6 +371,7 @@ class AirspeedReferenceVref(FlightAttributeNode):
 '''
 Sustained UA metrics
 '''                            
+
 class AirspeedRelativeMin3Sec1000to500ftHAT (KeyPointValueNode):
     '''CAS-Vref 1000 to 500 ft HAT'''
     name = 'Airspeed Relative 1000 to 500 ft HAT Min (3 sec)'
@@ -390,12 +392,13 @@ class AirspeedRelativeMin3Sec1000to500ftHAT (KeyPointValueNode):
         
         cas_run = sustained_min(cas)
         for app in approaches:          
-            if vref.value is not None:
+            if vref is not None and vref.value is not None:
                 cas_vref=cas_run.data-vref.value
                 self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),min_value)
             else:
                 return
-                
+
+              
 class AirspeedRelativeMax3Sec1000to500ftHAT (KeyPointValueNode):
     '''CAS-Vref 1000 to 500 ft HAT'''
     name = 'Airspeed Relative 1000 to 500 ft HAT Max (3 sec)'
@@ -412,11 +415,13 @@ class AirspeedRelativeMax3Sec1000to500ftHAT (KeyPointValueNode):
                cas=P('Airspeed'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
+   
                approaches=S('Approach And Landing')):
                    
         cas_run = sustained_max(cas)
         for app in approaches:  
-            if vref.value is not None:
+            #pdb.set_trace()
+            if vref is not None and vref.value is not None:
                 cas_vref=cas_run.data-vref.value
                 self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),max_value)
             else:
@@ -442,7 +447,7 @@ class AirspeedRelativeMax3Sec500to50ftHAT (KeyPointValueNode):
         
         cas_run = sustained_max(cas)
         for app in approaches:  
-            if vref.value is not None:            
+            if vref is not None and vref.value is not None:            
                 cas_vref=cas_run.data-vref.value
                 self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),max_value)
             else:
@@ -467,11 +472,12 @@ class AirspeedRelativeMin3sec500to50ftHAT (KeyPointValueNode):
                approaches=S('Approach And Landing')):
         cas_run = sustained_min(cas)
         for app in approaches:       
-            if vref.value is not None:               
+            if vref is not None and vref.value is not None:               
                 cas_vref=cas_run.data-vref.value
                 self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),min_value)
             else:
                 return
+
 
 class GlideslopeDeviation5Sec1000To500FtMax(KeyPointValueNode):
     '''
@@ -718,11 +724,13 @@ class EngN15Sec1000To500FtMin(KeyPointValueNode):
             alt_aal.slices_from_to(1000, 500),
             min_value,
         )
+"""
 
+
+"""
 '''
 Instantaneous UA metrics
 '''
-"""
 class AirspeedRelativeMax1000to500ftHAT (KeyPointValueNode):
     '''CAS-Vref 1000 to 500 ft HAT'''
     name = 'Airspeed Relative 1000 to 500 ft HAT Max'
@@ -983,6 +991,7 @@ class LocalizerDeviation500To50FtMax(KeyPointValueNode):
             self.warning("ILS Localizer not measured on approach")            
             return
         
+"""
 class LocalizerDeviation1000To500FtMax(KeyPointValueNode):
     '''
     Determine maximum absolute deviation from the localizer between 1000 and 500 ft.
@@ -1010,7 +1019,7 @@ class LocalizerDeviation1000To500FtMax(KeyPointValueNode):
         else:
             self.warning("ILS Localizer not measured on approach")            
             return
-"""
+
 ### Section 3: pre-defined test sets
 def tiny_test():
     '''quick test set'''
@@ -1125,7 +1134,7 @@ def pkl_check():
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'UAv1'  + '-'+ socket.gethostname()   
-    REPO, FILES_TO_PROCESS = test_sql_ua_all()   #test_sql_jfk_local() #test_kpv_range()  #test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
+    REPO, FILES_TO_PROCESS = test10() #test_sql_ua_all()   #test_sql_jfk_local() #test_kpv_range()  #test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
     COMMENT   = 'UA with times'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
