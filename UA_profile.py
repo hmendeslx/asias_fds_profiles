@@ -171,7 +171,7 @@ def get_vspeed_map_mitre(series=None, family=None, engine_series=None, engine_ty
             #found = 'None'
             #return found
 
-"""
+
 class AirspeedReferenceVref(FlightAttributeNode):
     '''a simple derived parameter = a new time series'''
     name = 'Vref (Recorded then Lookup)'
@@ -724,7 +724,7 @@ class EngN15Sec1000To500FtMin(KeyPointValueNode):
             alt_aal.slices_from_to(1000, 500),
             min_value,
         )
-"""
+
 
 
 """
