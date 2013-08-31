@@ -220,7 +220,6 @@ def test_kpv_range():
     repo='keith'
     return repo, files_to_process
 
-    return files_to_process
     
 
 if __name__=='__main__':
@@ -228,11 +227,14 @@ if __name__=='__main__':
     PROFILE_NAME = 'example_keith' + '-'+ socket.gethostname()   
     FILE_REPOSITORY, FILES_TO_PROCESS = tiny_test() # test10() #test10() #test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
     COMMENT   = 'test file repos'
-    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    LOG_LEVEL = 'INFO'      # 'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
-    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, FILE_REPOSITORY )
+    helper.run_profile(PROFILE_NAME , module_names, 
+                       LOG_LEVEL, FILES_TO_PROCESS, 
+                       COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
+                       save_oracle=False)
     
