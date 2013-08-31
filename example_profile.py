@@ -158,8 +158,7 @@ def test100():
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))[:100]
     repo='keith'
     return repo, files_to_process
-    
-    
+
     
 def test_sql_jfk():
     '''sample test set based on query from Oracle fds_flight_record'''
@@ -199,11 +198,7 @@ def fll_local():
 
 
 def test_kpv_range():
-    '''run against flights with select kpv values.
-        TODO check how do multi-state params work
-        TODO add index to FDS_KPV, FDS_KTI
-        TODO think more about treatment of multiples for a given KPV or KTI
-    '''
+    '''run against flights with select kpv values.'''
     query="""select distinct f.file_path --, kpv.name, kpv.value
                 from fds_flight_record f join fds_kpv kpv 
                   on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
@@ -229,6 +224,7 @@ if __name__=='__main__':
     COMMENT   = 'test file repos'
     LOG_LEVEL = 'INFO'      # 'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
+    SAVE_ORACLE = True    
     ###########################################################################
     
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
@@ -236,5 +232,5 @@ if __name__=='__main__':
     helper.run_profile(PROFILE_NAME , module_names, 
                        LOG_LEVEL, FILES_TO_PROCESS, 
                        COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
-                       save_oracle=False)
+                       save_oracle=SAVE_ORACLE)
     
