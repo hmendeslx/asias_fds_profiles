@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Example profile module: defines a set of measures that run against 
-FDS' FlightDataAnalyzer base data.
-
+FDS FlightDataAnalyzer base data.
 @author: KEITHC, April 2013
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
