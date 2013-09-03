@@ -1134,7 +1134,7 @@ def pkl_check():
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'UAv1'  + '-'+ socket.gethostname()   
-    REPO, FILES_TO_PROCESS = test10() #test_sql_ua_all()   #test_sql_jfk_local() #test_kpv_range()  #test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
+    REPO, FILES_TO_PROCESS = tiny_test() #test10() #test_sql_ua_all()   #test_sql_jfk_local() #test_kpv_range()  #test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
     COMMENT   = 'UA with times'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
