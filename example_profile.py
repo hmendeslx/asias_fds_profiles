@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Example profile module: defines a set of measures that run against 
-FDS' FlightDataAnalyzer base data.
-
+FDS FlightDataAnalyzer base data.
 @author: KEITHC, April 2013
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
@@ -158,8 +157,7 @@ def test100():
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))[:100]
     repo='keith'
     return repo, files_to_process
-    
-    
+
     
 def test_sql_jfk():
     '''sample test set based on query from Oracle fds_flight_record'''
@@ -199,11 +197,7 @@ def fll_local():
 
 
 def test_kpv_range():
-    '''run against flights with select kpv values.
-        TODO check how do multi-state params work
-        TODO add index to FDS_KPV, FDS_KTI
-        TODO think more about treatment of multiples for a given KPV or KTI
-    '''
+    '''run against flights with select kpv values.'''
     query="""select distinct f.file_path --, kpv.name, kpv.value
                 from fds_flight_record f join fds_kpv kpv 
                   on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
@@ -220,7 +214,6 @@ def test_kpv_range():
     repo='keith'
     return repo, files_to_process
 
-    return files_to_process
     
 
 if __name__=='__main__':
@@ -228,11 +221,15 @@ if __name__=='__main__':
     PROFILE_NAME = 'example_keith' + '-'+ socket.gethostname()   
     FILE_REPOSITORY, FILES_TO_PROCESS = tiny_test() # test10() #test10() #test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
     COMMENT   = 'test file repos'
-    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    LOG_LEVEL = 'INFO'      # 'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
+    SAVE_ORACLE = True    
     ###########################################################################
     
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
-    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, FILE_REPOSITORY )
+    helper.run_profile(PROFILE_NAME , module_names, 
+                       LOG_LEVEL, FILES_TO_PROCESS, 
+                       COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
+                       save_oracle=SAVE_ORACLE)
     

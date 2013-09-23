@@ -409,7 +409,6 @@ class AirspeedRelativeMin3Sec1000to500ftHAT (KeyPointValueNode):
         
         #cas_run = sustained_min(cas)
         for app in approaches:          
-
             if vref is not None and vref.value is not None:
                 #pdb.set_trace()
                 cas_run = sustained_min(cas,_slice=app)
@@ -451,7 +450,6 @@ class AirspeedRelativeMax3Sec1000to500ftHAT (KeyPointValueNode):
                 x.data[app.slice]=cas_vref
                 self.create_kpvs_within_slices(x,altitude.slices_from_to(1000,500),max_value)
             #pdb.set_trace()
-
             else:
                 return
 
@@ -483,6 +481,7 @@ class AirspeedRelativeMax3Sec500to50ftHAT (KeyPointValueNode):
                 x=np.ma.zeros(len(cas.array))
                 x.data[app.slice]=cas_vref
                 self.create_kpvs_within_slices(x,altitude.slices_from_to(500,50),max_value)
+
             else:
                 return
             
@@ -902,6 +901,7 @@ class EngN15Sec1000To500FtMin(KeyPointValueNode):
 
 
 
+
 """
 '''
 Instantaneous UA metrics
@@ -1308,6 +1308,7 @@ def pkl_check():
     
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
+
     PROFILE_NAME = 'UA_test_optimize2'  + '-'+ socket.gethostname()   
     REPO, FILES_TO_PROCESS = test_sql_ua_all()   #test_sql_jfk_local() #test_kpv_range()  #test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
     COMMENT   = 'UA with times'
