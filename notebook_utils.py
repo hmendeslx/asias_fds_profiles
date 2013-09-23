@@ -39,7 +39,7 @@ def derive_many(flight, myvars, precomputed={}):
     '''
     node_mgr = get_profile_nodemanager(flight, myvars)
     process_order, graph = helper.dependency_order(node_mgr, draw=False)
-    res, params = helper.derive_parameters_series(flight, node_mgr, process_order, precomputed={})
+    res, params = helper.derive_parameters_series(flight, node_mgr, process_order, precomputed=flight.parameters)
     return params
     
 
@@ -65,7 +65,7 @@ def derive_one(flight, parameter_class, precomputed={}):
                         achieved_flight_record={'Myfile': flight.filepath, 'Mydict':dict()}
                       )
     single_order, single_graph = helper.dependency_order(single_mgr, draw=False)
-    res, params= helper.derive_parameters_series(flight, single_mgr, single_order, precomputed={})    
+    res, params= helper.derive_parameters_series(flight, single_mgr, single_order, precomputed=flight.parameters)    
     return params
 
 

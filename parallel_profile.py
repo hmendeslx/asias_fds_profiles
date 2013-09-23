@@ -127,20 +127,13 @@ def tiny_test():
     repo='keith'
     return repo, files_to_process
 
-def test10_shared():
-    '''quick test set'''
-    input_dir  = 'Y:/asias_fds/base_data/test10/'
-    print input_dir
-    files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='serrano'
-    return repo, files_to_process
 
 def test10():
     '''quick test set'''
     input_dir  = settings.BASE_DATA_PATH + 'test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='keith'
+    repo='NA'
     return repo, files_to_process
     
 
@@ -229,8 +222,8 @@ def partition(lst, n):
 # map() friendly version of main    
 def run_profile(files_to_process):
     import staged_helper as helper
-    import sys
-    sys.path.append('c:/asias_fds/asias_fds_profiles')
+    #import sys
+    #sys.path.append('c:/asias_fds/asias_fds_profiles')
     ###CONFIGURATION options###################################################
     COMMENT   = 'test file repos'
     LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
@@ -242,7 +235,7 @@ def run_profile(files_to_process):
     
 ###TODO: Wire up logging to STDOUT?
 if __name__=='__main__':
-    FILE_REPOSITORY, FILES_TO_PROCESS = test10_shared() #jfk_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    FILE_REPOSITORY, FILES_TO_PROCESS = test10() #jfk_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
     ########################################################################### 
     print "Run 'ipcluster start -n 4' from the command line first!"
     import time
@@ -252,12 +245,15 @@ if __name__=='__main__':
     engine_count = len(c.ids)
     dview = c[:]  #DirectView list of engines
     dview.block = True
+    with dview.sync_imports():
+        import staged_helper as helper
+
 
     t0 = time.time()
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print module_names    
     print 'file count:', len(FILES_TO_PROCESS)
-    dview['PROFILE_NAME']    = 'parallel' + '-'+ socket.gethostname()   
+    dview['PROFILE_NAME']    = 'parallel cockpit' + '-'+ socket.gethostname()   
     dview['module_names']    = module_names 
     dview['file_repository'] = FILE_REPOSITORY
     
@@ -269,6 +265,7 @@ if __name__=='__main__':
     # single process version    
     #res = map(run_profile, FILES_TO_PROCESS)
     # parallel version
+    print 'calling map_sync run_profile'
     res =  dview.map_sync(run_profile, partitioned_files)        
     print 'time', time.time()-t0
     print 'done'

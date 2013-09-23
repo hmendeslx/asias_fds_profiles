@@ -112,8 +112,8 @@ class InitialApproach(FlightPhaseNode):
         return
 
    
-"""
-class DistanceTravelledInAir(DerivedParameterNode):
+
+class DistanceTravelledInAirTemporary(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
     units='nm'
     def derive(self, airspeed=P('Airspeed True'), grounded=S('Grounded') ):
@@ -123,7 +123,7 @@ class DistanceTravelledInAir(DerivedParameterNode):
         adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
         self.array = adist
         #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
-"""
+
 
 ### Section 3: pre-defined test sets
 def tiny_test():
@@ -133,6 +133,15 @@ def tiny_test():
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
     repo='keith'
     return repo, files_to_process
+
+def ffd_test10():
+    '''quick test set'''
+    input_dir  = settings.BASE_DATA_PATH + 'ffd897/'
+    print input_dir
+    files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
+    repo='linux'
+    return repo, files_to_process
+
 
 def test10_shared():
     '''quick test set'''
@@ -198,30 +207,32 @@ def fll_local():
 
 def test_kpv_range():
     '''run against flights with select kpv values.'''
+    repo = 'linux'
     query="""select distinct f.file_path --, kpv.name, kpv.value
                 from fds_flight_record f join fds_kpv kpv 
                   on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
-                 where f.file_repository='central' 
+                 where f.file_repository='REPO' 
                    and f.base_file_path is not null
                    and f.orig_icao='KJFK' and f.dest_icao='KFLL'
                    and ( 
-                         (kpv.name='Airspeed 500 To 20 Ft Max' and kpv.value between 100.0 and 200.0)
-                        or (kpv.name='Simple Kpv' and kpv.value>100)
+                         kpv.name='Airspeed 500 To 20 Ft Max' 
+                      --and kpv.value between 100.0 and 200.0)
+                      --  or (kpv.name='Simple Kpv' and kpv.value>100)
                        ) 
                 order by file_path
-                """
+                """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    repo='keith'
     return repo, files_to_process
 
     
 
 if __name__=='__main__':
+    print 'starting'
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'example_keith' + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS = tiny_test() # test10() #test10() #test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    COMMENT   = 'test file repos'
-    LOG_LEVEL = 'INFO'      # 'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    FILE_REPOSITORY, FILES_TO_PROCESS =  test_kpv_range() #tiny_test()  #ffd_test10() #tiny_test() # test10() #test10() #test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    COMMENT   = 'try profile from linux repo'
+    LOG_LEVEL = 'WARNING'      # 'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     SAVE_ORACLE = True    
     ###########################################################################
