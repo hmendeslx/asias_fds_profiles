@@ -213,7 +213,7 @@ def test_kpv_range():
                   on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
                  where f.file_repository='REPO' 
                    and f.base_file_path is not null
-                   and f.orig_icao='KJFK' and f.dest_icao='KFLL'
+                   and f.orig_icao='KIAD' and f.dest_icao='KFLL'
                    and ( 
                          kpv.name='Airspeed 500 To 20 Ft Max' 
                       --and kpv.value between 100.0 and 200.0)

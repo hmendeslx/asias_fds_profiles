@@ -10,7 +10,9 @@ Test of ipython parallel on the example profile module
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
 import pdb
-
+from datetime import datetime
+import logging
+from logging import NullHandler
 import os, glob, socket
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
                                    App, ApproachNode,                      # per approach
@@ -188,25 +190,22 @@ def jfk_local():
     return repo, files_to_process
     
 def test_kpv_range():
-    '''run against flights with select kpv values.
-        TODO check how do multi-state params work
-        TODO add index to FDS_KPV, FDS_KTI
-        TODO think more about treatment of multiples for a given KPV or KTI
-    '''
+    '''run against flights with select kpv values.'''
+    repo = 'linux'
     query="""select distinct f.file_path --, kpv.name, kpv.value
                 from fds_flight_record f join fds_kpv kpv 
                   on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
-                 where f.file_repository='central' 
+                 where f.file_repository='REPO' 
                    and f.base_file_path is not null
-                   and f.orig_icao='KJFK' and f.dest_icao='KFLL'
+                   and f.orig_icao='KIAD' and f.dest_icao='KFLL'
                    and ( 
-                         (kpv.name='Airspeed 500 To 20 Ft Max' and kpv.value between 100.0 and 200.0)
-                        or (kpv.name='Simple Kpv' and kpv.value>100)
+                         kpv.name='Airspeed 500 To 20 Ft Max' 
+                      --and kpv.value between 100.0 and 200.0)
+                      --  or (kpv.name='Simple Kpv' and kpv.value>100)
                        ) 
                 order by file_path
-                """
+                """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    repo='keith'
     return repo, files_to_process
 
 
@@ -221,7 +220,7 @@ def partition(lst, n):
 
 # map() friendly version of main    
 def run_profile(files_to_process):
-    import staged_helper as helper
+    import staged_helper
     #import sys
     #sys.path.append('c:/asias_fds/asias_fds_profiles')
     ###CONFIGURATION options###################################################
@@ -230,13 +229,47 @@ def run_profile(files_to_process):
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################    
     print 'profile', PROFILE_NAME 
-    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, COMMENT, MAKE_KML_FILES, file_repository ) 
+    staged_helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, COMMENT, MAKE_KML_FILES, file_repository ) 
     return True
     
 ###TODO: Wire up logging to STDOUT?
+    
+def run_profile_parallel(profile_name, module_names, 
+                LOG_LEVEL, FILES_TO_PROCESS, 
+                COMMENT, MAKE_KML_FILES, 
+                FILE_REPOSITORY='central', save_oracle=True ):
+    print 'calling run_analyzer'
+    run_analyzer(profile_name, module_names, 
+             logger, FILES_TO_PROCESS, 
+             'NA', output_dir, reports_dir, 
+             include_flight_attributes=False, 
+             make_kml=MAKE_KML_FILES, 
+             save_oracle=save_oracle,
+             comment=COMMENT,
+             file_repository=FILE_REPOSITORY)  
+             
+def initialize_logger(LOG_LEVEL, filename='log_messages.txt'):
+    '''all stages use this common logger setup'''
+    logger = logging.getLogger()
+    #logger = initialize_logger(LOG_LEVEL)
+    logger.setLevel(LOG_LEVEL)
+    logger.addHandler(logging.NullHandler()) #send to file 
+    return logger
+
+
 if __name__=='__main__':
-    FILE_REPOSITORY, FILES_TO_PROCESS = test10() #jfk_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    ########################################################################### 
+    ###CONFIGURATION ######################################################### 
+    PROFILE_NAME = 'parallel_linux' + '-'+ socket.gethostname()   
+    COMMENT = 'test parallel linux'
+    FILE_REPOSITORY, FILES_TO_PROCESS = test_kpv_range()  #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    LOG_LEVEL = 'INFO'       
+    MAKE_KML_FILES = False
+    ###############################################################
+    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    print ' module names', module_names    
+
+
+
     print "Run 'ipcluster start -n 4' from the command line first!"
     import time
     from IPython.parallel import Client
@@ -246,26 +279,40 @@ if __name__=='__main__':
     dview = c[:]  #DirectView list of engines
     dview.block = True
     with dview.sync_imports():
-        import staged_helper as helper
-
+        import staged_helper
 
     t0 = time.time()
-    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
-    print module_names    
-    print 'file count:', len(FILES_TO_PROCESS)
-    dview['PROFILE_NAME']    = 'parallel cockpit' + '-'+ socket.gethostname()   
+    #build parallel namespace
     dview['module_names']    = module_names 
-    dview['file_repository'] = FILE_REPOSITORY
+    dview['PROFILE_NAME'] = PROFILE_NAME
+    dview['COMMENT'] = COMMENT
+    dview['LOG_LEVEL'] = LOG_LEVEL 
+    dview.scatter('files_to_process', FILES_TO_PROCESS)
+    dview['file_repository'] = FILE_REPOSITORY    
+    dview['MAKE_KML_FILES'] = MAKE_KML_FILES 
+    print 'file count:', len(FILES_TO_PROCESS)
+    print 'profile', PROFILE_NAME 
     
-    partitioned_files = partition(FILES_TO_PROCESS, engine_count)
-    #print partitioned_files
-    #dview['REPO'] = FILE_REPOSITORY   
-    #run_profile(FILES_TO_PROCESS)  #set repo manually for now
-    
-    # single process version    
-    #res = map(run_profile, FILES_TO_PROCESS)
-    # parallel version
-    print 'calling map_sync run_profile'
-    res =  dview.map_sync(run_profile, partitioned_files)        
+    reports_dir = settings.PROFILE_REPORTS_PATH
+    output_dir = settings.PROFILE_DATA_PATH + PROFILE_NAME+'/' 
+    if not os.path.exists(output_dir): 
+        os.makedirs(output_dir)
+    dview['output_dir '] = output_dir 
+    dview['reports_dir '] =  reports_dir 
+        
+    def eng_profile():
+        #staged_helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, COMMENT, MAKE_KML_FILES, file_repository ) 
+        logger = staged_helper.initialize_logger(LOG_LEVEL)    
+
+        staged_helper.run_analyzer(PROFILE_NAME, module_names, logger, 
+                     files_to_process,   'NA', output_dir, reports_dir, 
+                     include_flight_attributes=False, make_kml=False,   
+                     save_oracle=True, comment=COMMENT, 
+                     file_repository='linux' 
+                     ) 
+    etime= time.time()
+    dview.apply(eng_profile) 
+    print 'apply time', time.time()-etime
     print 'time', time.time()-t0
     print 'done'
+    
