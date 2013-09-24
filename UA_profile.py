@@ -189,7 +189,7 @@ def get_vspeed_map_mitre(series=None, family=None, engine_series=None, engine_ty
             #return found
 
 
-class AirspeedReferenceVref(FlightAttributeNode):
+class AirspeedReferenceVref(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
     name = 'Vref (Recorded then Lookup)'
     units = 'kts'
@@ -224,18 +224,17 @@ class AirspeedReferenceVref(FlightAttributeNode):
         if vref:
             # Use recorded Vref parameter:
             #self.array = vref.array
-            self.set_flight_attr(vref.array)
+            self.array=vref.array
         elif afr_vref:
             # Use provided Vref from achieved flight record:
             afr_vspeed = afr_vref
-            afrvref = np.ma.zeros(len(air_spd.array), np.double)
-            afrvref.mask = True
+            self.array = np.ma.zeros(len(air_spd.array), np.double)
+            self.array.mask = True
             for approach in approaches:
-                afrvref[approach.slice] = afr_vspeed.value
-            self.set_flight_attr(afrvref)
+                self.array[approach.slice] = afr_vspeed.value
         else:
             # Use speed card lookups
-            lookup = np_ma_masked_zeros_like(air_spd.array)
+            self.array = np_ma_masked_zeros_like(air_spd.array)
 
             x = map(lambda x: x.value if x else None, (series, family, engine, engine_type))
 
@@ -285,8 +284,7 @@ class AirspeedReferenceVref(FlightAttributeNode):
                                  "because Vref lookup table does not have corresponding values.")
                         return
  
-                    lookup[_slice] = vspeed
-                    self.set_flight_attr(lookup)
+                    self.array[_slice] = vspeed
 
 
 #class AirspeedReferenceVref(DerivedParameterNode):
@@ -402,17 +400,17 @@ class AirspeedRelativeMin3Sec1000to500ftHAT (KeyPointValueNode):
     def derive(self,
                #vref=P('Vref (Recorded then Lookup)'),
                cas=P('Airspeed'),
-               vref=A('Vref (Recorded then Lookup)'),
+               vref=P('Vref (Recorded then Lookup)'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
                approaches=S('Approach And Landing')):
         
         #cas_run = sustained_min(cas)
         for app in approaches:          
-            if vref is not None and vref.value is not None:
+            if vref is not None and vref.array is not None:
                 #pdb.set_trace()
                 cas_run = sustained_min(cas,_slice=app)
-                cas_vref=cas_run.data-vref.value[app.slice]
+                cas_vref=cas_run.data-vref.array[app.slice]
                 x=np.ma.zeros(len(cas.array))
                 x.data[app.slice]=cas_vref
                 self.create_kpvs_within_slices(x,altitude.slices_from_to(1000,500),min_value)
@@ -433,7 +431,7 @@ class AirspeedRelativeMax3Sec1000to500ftHAT (KeyPointValueNode):
     def derive(self,
                #vref=P('Vref (Recorded then Lookup)'),
                cas=P('Airspeed'),
-               vref=A('Vref (Recorded then Lookup)'),
+               vref=P('Vref (Recorded then Lookup)'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
    
@@ -441,11 +439,11 @@ class AirspeedRelativeMax3Sec1000to500ftHAT (KeyPointValueNode):
                    
         #cas_run = sustained_max(cas)
         for app in approaches:  
-            if vref is not None and vref.value is not None:
+            if vref is not None and vref.array is not None:
                 #cas_vref=cas_run.data-vref.value
                 #self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(1000,500),max_value)
                 cas_run = sustained_max(cas,_slice=app)
-                cas_vref=cas_run.data-vref.value[app.slice]
+                cas_vref=cas_run.data-vref.array[app.slice]
                 x=np.ma.zeros(len(cas.array))
                 x.data[app.slice]=cas_vref
                 self.create_kpvs_within_slices(x,altitude.slices_from_to(1000,500),max_value)
@@ -466,18 +464,18 @@ class AirspeedRelativeMax3Sec500to50ftHAT (KeyPointValueNode):
     def derive(self,
                #vref=P('Vref (Recorded then Lookup)'),
                cas=P('Airspeed'),
-               vref=A('Vref (Recorded then Lookup)'),
+               vref=P('Vref (Recorded then Lookup)'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
                approaches=S('Approach And Landing')):
         
         #cas_run = sustained_max(cas)
         for app in approaches:  
-            if vref is not None and vref.value is not None:             
+            if vref is not None and vref.array is not None:             
                 #cas_vref=cas_run.data-vref.value
                 #self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),max_value)
                 cas_run = sustained_max(cas,_slice=app)
-                cas_vref=cas_run.data-vref.value[app.slice]
+                cas_vref=cas_run.data-vref.array[app.slice]
                 x=np.ma.zeros(len(cas.array))
                 x.data[app.slice]=cas_vref
                 self.create_kpvs_within_slices(x,altitude.slices_from_to(500,50),max_value)
@@ -498,17 +496,17 @@ class AirspeedRelativeMin3sec500to50ftHAT (KeyPointValueNode):
     def derive(self,
                #vref=P('Vref (Recorded then Lookup)'),
                cas=P('Airspeed'),
-               vref=A('Vref (Recorded then Lookup)'),
+               vref=P('Vref (Recorded then Lookup)'),
                altitude=P('Altitude AAL'),
                touchdowns=KTI('Touchdown'),
                approaches=S('Approach And Landing')):
         #cas_run = sustained_min(cas)
         for app in approaches:       
-            if vref is not None and vref.value is not None:                
+            if vref is not None and vref.array is not None:                
                 #cas_vref=cas_run.data-vref.value
                 #self.create_kpvs_within_slices(cas_vref,altitude.slices_from_to(500,50),min_value)
                 cas_run = sustained_min(cas,_slice=app)
-                cas_vref=cas_run.data-vref.value[app.slice]
+                cas_vref=cas_run.data-vref.array[app.slice]
                 x=np.ma.zeros(len(cas.array))
                 x.data[app.slice]=cas_vref
                 self.create_kpvs_within_slices(x,altitude.slices_from_to(500,50),min_value)
@@ -797,7 +795,7 @@ class RateOfDescent3Sec1000To500FtMax(KeyPointValueNode):
             x.data[app.slice]=vsi_run
             #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
             self.create_kpvs_within_slices(
-                vsi_run.data,
+                x,
                 alt_aal.slices_from_to(1000, 500),
                 min_value,
                 )
@@ -827,7 +825,7 @@ class RateOfDescent3Sec500To50FtMax(KeyPointValueNode):
             x.data[app.slice]=vsi_run
             #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
             self.create_kpvs_within_slices(
-                vsi_run.data,
+                x,
                 alt_aal.slices_from_to(500, 50),
                 min_value,
                 )
@@ -857,7 +855,7 @@ class EngN15Sec500To50FtMin(KeyPointValueNode):
             x.data[app.slice]=eng_run
             #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
             self.create_kpvs_within_slices(
-                eng_run.data,
+                x,
                 alt_aal.slices_from_to(500, 50),
                 min_value,
                 )
@@ -887,7 +885,7 @@ class EngN15Sec1000To500FtMin(KeyPointValueNode):
             x.data[app.slice]=eng_run
             #ils_bands = slices_and(alt_bands, ils_ests.get_slices())
             self.create_kpvs_within_slices(
-                eng_run.data,
+                x,
                 alt_aal.slices_from_to(1000, 500),
                 min_value,
                 )
@@ -1166,7 +1164,7 @@ class LocalizerDeviation500To50FtMax(KeyPointValueNode):
             self.warning("ILS Localizer not measured on approach")            
             return
         
-"""
+
 class LocalizerDeviation1000To500FtMax(KeyPointValueNode):
     '''
     Determine maximum absolute deviation from the localizer between 1000 and 500 ft.
@@ -1194,7 +1192,7 @@ class LocalizerDeviation1000To500FtMax(KeyPointValueNode):
         else:
             self.warning("ILS Localizer not measured on approach")            
             return
-
+"""
 ### Section 3: pre-defined test sets
 def tiny_test():
     '''quick test set'''
@@ -1251,6 +1249,7 @@ def test_sql_ua_all():
     query = """select file_path from fds_flight_record 
                  where 
                     file_repository='REPO' 
+                    and rownum<5
                     """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
@@ -1309,7 +1308,7 @@ def pkl_check():
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
 
-    PROFILE_NAME = 'UA_test_optimize2'  + '-'+ socket.gethostname()   
+    PROFILE_NAME = 'UA_temporary'  + '-'+ socket.gethostname()   
     REPO, FILES_TO_PROCESS = test_sql_ua_all()   #test_sql_jfk_local() #test_kpv_range()  #test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
     COMMENT   = 'UA with times'
     LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
