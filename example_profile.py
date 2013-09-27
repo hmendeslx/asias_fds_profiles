@@ -78,7 +78,7 @@ class SimplerKPV(KeyPointValueNode):
     units='deg'
     def derive(self, start_datetime=A('Start Datetime')):
         self.append(KeyPointValue(index=42.5, value=666.6,name='My Simpler KPV'))
-        print 'simpler KPV 2'
+        #print 'simpler KPV 2'
         self.append(KeyPointValue(index=42.5, value=666.6,name='My Simpler KPV 2'))
 
 class TCASRAStart(KeyTimeInstanceNode):
@@ -112,7 +112,7 @@ class InitialApproach(FlightPhaseNode):
         return
 
    
-
+"""
 class DistanceTravelledInAirTemporary(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
     units='nm'
@@ -123,15 +123,15 @@ class DistanceTravelledInAirTemporary(DerivedParameterNode):
         adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
         self.array = adist
         #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
-
+"""
 
 ### Section 3: pre-defined test sets
 def tiny_test():
     '''quick test set'''
     input_dir  = settings.BASE_DATA_PATH + 'tiny_test/'
-    print input_dir
+    print 'tiny_test()', input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='keith'
+    repo='linux'
     return repo, files_to_process
 
 def ffd_test10():
@@ -143,12 +143,12 @@ def ffd_test10():
     return repo, files_to_process
 
 
-def test10_shared():
+def test10_scratch():
     '''quick test set'''
-    input_dir  = 'Y:/asias_fds/base_data/test10/'
+    input_dir  = '/opt/scratch/test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='serrano'
+    repo='cockpit'
     return repo, files_to_process
 
 def test10():
@@ -156,7 +156,7 @@ def test10():
     input_dir  = settings.BASE_DATA_PATH + 'test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='keith'
+    repo='linux'
     return repo, files_to_process
     
 def test100():
@@ -230,17 +230,18 @@ if __name__=='__main__':
     print 'starting'
     ###CONFIGURATION options###################################################
     PROFILE_NAME = 'example_keith' + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS =  test_kpv_range() #tiny_test()  #ffd_test10() #tiny_test() # test10() #test10() #test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    FILE_REPOSITORY, FILES_TO_PROCESS =  tiny_test() #test10_scratch() #test_kpv_range() #tiny_test()  #ffd_test10() #tiny_test() # test10() #test10() #test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
     COMMENT   = 'try profile from linux repo'
     LOG_LEVEL = 'WARNING'      # 'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
-    SAVE_ORACLE = True    
+    SAVE_ORACLE = False    
     ###########################################################################
     
-    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    module_names = [ os.path.basename(__file__).replace('.py','') ] #helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
     helper.run_profile(PROFILE_NAME , module_names, 
-                       LOG_LEVEL, FILES_TO_PROCESS, 
-                       COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
-                       save_oracle=SAVE_ORACLE)
+                                   LOG_LEVEL, FILES_TO_PROCESS, 
+                                   COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
+                                   save_oracle=SAVE_ORACLE,
+                                   mortal=False)
     

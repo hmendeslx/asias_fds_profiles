@@ -209,53 +209,6 @@ def test_kpv_range():
     return repo, files_to_process
 
 
-def partition(lst, n):
-    '''return a list of n lists with nearly equal size
-        from http://stackoverflow.com/questions/2659900/python-slicing-a-list-into-n-nearly-equal-length-partitions
-    '''
-    division = len(lst) / float(n)
-    return [ lst[int(round(division * i)): int(round(division * (i + 1)))] for i in xrange(n) ]
-
-
-
-# map() friendly version of main    
-def run_profile(files_to_process):
-    import staged_helper
-    #import sys
-    #sys.path.append('c:/asias_fds/asias_fds_profiles')
-    ###CONFIGURATION options###################################################
-    COMMENT   = 'test file repos'
-    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
-    MAKE_KML_FILES=False    # Run times are much slower when KML is True
-    ###########################################################################    
-    print 'profile', PROFILE_NAME 
-    staged_helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, COMMENT, MAKE_KML_FILES, file_repository ) 
-    return True
-    
-###TODO: Wire up logging to STDOUT?
-    
-def run_profile_parallel(profile_name, module_names, 
-                LOG_LEVEL, FILES_TO_PROCESS, 
-                COMMENT, MAKE_KML_FILES, 
-                FILE_REPOSITORY='central', save_oracle=True ):
-    print 'calling run_analyzer'
-    run_analyzer(profile_name, module_names, 
-             logger, FILES_TO_PROCESS, 
-             'NA', output_dir, reports_dir, 
-             include_flight_attributes=False, 
-             make_kml=MAKE_KML_FILES, 
-             save_oracle=save_oracle,
-             comment=COMMENT,
-             file_repository=FILE_REPOSITORY)  
-             
-def initialize_logger(LOG_LEVEL, filename='log_messages.txt'):
-    '''all stages use this common logger setup'''
-    logger = logging.getLogger()
-    #logger = initialize_logger(LOG_LEVEL)
-    logger.setLevel(LOG_LEVEL)
-    logger.addHandler(logging.NullHandler()) #send to file 
-    return logger
-
 
 if __name__=='__main__':
     ###CONFIGURATION ######################################################### 
@@ -267,7 +220,6 @@ if __name__=='__main__':
     ###############################################################
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print ' module names', module_names    
-
 
 
     print "Run 'ipcluster start -n 4' from the command line first!"
@@ -306,7 +258,7 @@ if __name__=='__main__':
 
         staged_helper.run_analyzer(PROFILE_NAME, module_names, logger, 
                      files_to_process,   'NA', output_dir, reports_dir, 
-                     include_flight_attributes=False, make_kml=False,   
+                     include_flight_attributes=False, make_kml=MAKE_KML_FILES,   
                      save_oracle=True, comment=COMMENT, 
                      file_repository='linux' 
                      ) 
