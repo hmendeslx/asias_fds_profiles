@@ -8,6 +8,7 @@ Example profile module: defines a set of measures that run against Analyzer base
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
 import pdb
+import time
 import os, glob, socket
 import numpy as np
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
@@ -234,7 +235,7 @@ class AirspeedReferenceVref(DerivedParameterNode):
                 self.array[approach.slice] = afr_vspeed.value
         else:
             # Use speed card lookups
-            self.array = np_ma_masked_zeros_like(air_spd.array)
+            
 
             x = map(lambda x: x.value if x else None, (series, family, engine, engine_type))
 
@@ -283,7 +284,7 @@ class AirspeedReferenceVref(DerivedParameterNode):
                         self.warning("'Airspeed Reference' will be fully masked "
                                  "because Vref lookup table does not have corresponding values.")
                         return
- 
+                    self.array = np_ma_masked_zeros_like(air_spd.array)
                     self.array[_slice] = vspeed
 
 
@@ -820,6 +821,7 @@ class RateOfDescent3Sec500To50FtMax(KeyPointValueNode):
                approaches=S('Approach And Landing')):
 
         for app in approaches:
+            pdb.set_trace
             vsi_run = sustained_min(vrt_spd,_slice=app)
             x=np.ma.zeros(len(vrt_spd.array))
             x.data[app.slice]=vsi_run
@@ -897,7 +899,25 @@ class EngN15Sec1000To500FtMin(KeyPointValueNode):
 #            min_value,
 #        )
 
+class AltitudeAtLastGearDownBeforeTouchdown(KeyPointValueNode):
+    '''
+    '''
 
+    units = 'ft'
+
+    def derive(self,
+               gear=M('Gear Down'), 
+               alt_aal=P('Altitude AAL'),              
+               touchdowns=KTI('Touchdown')):
+
+        for touchdown in touchdowns:
+            rough_index = index_at_value(gear.array.data, 0.5, slice(touchdown.index, 0, -1))
+            # index_at_value tries to be precise, but in this case we really
+            # just want the index at the new flap setting.
+            if rough_index:
+                last_index = np.round(rough_index)
+                alt_last = value_at_index(alt_aal.array, last_index)
+                self.create_kpv(last_index, alt_last)    
 
 
 """
@@ -1004,25 +1024,7 @@ class AirspeedRelativeMin500to50ftHAT (KeyPointValueNode):
             else:
                 return
             
-class AltitudeAtLastGearDownBeforeTouchdown(KeyPointValueNode):
-    '''
-    '''
-
-    units = 'ft'
-
-    def derive(self,
-               gear=M('Gear Down'), 
-               alt_aal=P('Altitude AAL'),              
-               touchdowns=KTI('Touchdown')):
-
-        for touchdown in touchdowns:
-            rough_index = index_at_value(gear.array.data, 0.5, slice(touchdown.index, 0, -1))
-            # index_at_value tries to be precise, but in this case we really
-            # just want the index at the new flap setting.
-            if rough_index:
-                last_index = np.round(rough_index)
-                alt_last = value_at_index(alt_aal.array, last_index)
-                self.create_kpv(last_index, alt_last)     
+ 
 
 class GlideslopeDeviation1000To500FtMax(KeyPointValueNode):
     '''
@@ -1249,7 +1251,7 @@ def test_sql_ua_all():
     query = """select file_path from fds_flight_record 
                  where 
                     file_repository='REPO' 
-                    and rownum<5
+                    and rownum<3
                     """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
@@ -1304,18 +1306,49 @@ def pkl_check():
                    and rownum < 10""".replace('REPO',repo)
    files_to_process = fds_oracle.flight_record_filepaths(query)
    return repo, files_to_process
-    
+'''   
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
 
-    PROFILE_NAME = 'UA_temporary'  + '-'+ socket.gethostname()   
+    PROFILE_NAME = 'UA_rod_test'  + '-'+ socket.gethostname()   
     REPO, FILES_TO_PROCESS = test_sql_ua_all()   #test_sql_jfk_local() #test_kpv_range()  #test10() #test_kpv_range() #pkl_check() #tiny_test() #test_sql_ua_apts() # #test_sql_jfk()
-    COMMENT   = 'UA with times'
-    LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    COMMENT   = 'UA using windows --rod test'
+    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
     helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, REPO )
+ '''
+
+if __name__=='__main__':
+    ###CONFIGURATION ######################################################### 
+    FILE_REPOSITORY, FILES_TO_PROCESS = test_sql_ua_all() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    PROFILE_NAME = 'UA parallel' + '-'+ socket.gethostname()   
+    COMMENT = 'UA parallel linux'
+    LOG_LEVEL = 'INFO'       
+    MAKE_KML_FILES = False
+    IS_PARALLEL = False
+    ###############################################################
+    module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
+    print 'profile', PROFILE_NAME 
+    print 'file count:', len(FILES_TO_PROCESS)
+    print ' module names', module_names    
+    t0 = time.time()
     
+    if IS_PARALLEL:
+        dview = helper.parallel_directview(PROFILE_NAME, module_names , FILE_REPOSITORY, 
+                                                               LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES)
+        def eng_profile():
+            import staged_helper
+            reload(staged_helper)       
+            staged_helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, 
+                                    COMMENT, MAKE_KML_FILES, file_repository, save_oracle=True, mortal=False )
+        engine_results = dview.apply(eng_profile) 
+    else:
+        helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, 
+                                COMMENT, MAKE_KML_FILES, FILE_REPOSITORY, save_oracle=True, mortal=True )
+
+    print 'time', time.time()-t0
+    print 'done'   
