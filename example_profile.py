@@ -5,7 +5,7 @@ FDS FlightDataAnalyzer base data.
 @author: KEITHC, April 2013
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
-import pdb
+import time
 import os, glob, socket
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
                                    App, ApproachNode,                      # per approach
@@ -78,7 +78,7 @@ class SimplerKPV(KeyPointValueNode):
     units='deg'
     def derive(self, start_datetime=A('Start Datetime')):
         self.append(KeyPointValue(index=42.5, value=666.6,name='My Simpler KPV'))
-        print 'simpler KPV 2'
+        #print 'simpler KPV 2'
         self.append(KeyPointValue(index=42.5, value=666.6,name='My Simpler KPV 2'))
 
 class TCASRAStart(KeyTimeInstanceNode):
@@ -112,7 +112,7 @@ class InitialApproach(FlightPhaseNode):
         return
 
    
-
+"""
 class DistanceTravelledInAirTemporary(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
     units='nm'
@@ -123,15 +123,15 @@ class DistanceTravelledInAirTemporary(DerivedParameterNode):
         adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
         self.array = adist
         #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
-
+"""
 
 ### Section 3: pre-defined test sets
 def tiny_test():
     '''quick test set'''
     input_dir  = settings.BASE_DATA_PATH + 'tiny_test/'
-    print input_dir
+    print 'tiny_test()', input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='keith'
+    repo='linux'
     return repo, files_to_process
 
 def ffd_test10():
@@ -143,12 +143,12 @@ def ffd_test10():
     return repo, files_to_process
 
 
-def test10_shared():
+def test10_scratch():
     '''quick test set'''
-    input_dir  = 'Y:/asias_fds/base_data/test10/'
+    input_dir  = '/opt/scratch/test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='serrano'
+    repo='cockpit'
     return repo, files_to_process
 
 def test10():
@@ -156,7 +156,7 @@ def test10():
     input_dir  = settings.BASE_DATA_PATH + 'test10/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='keith'
+    repo='linux'
     return repo, files_to_process
     
 def test100():
@@ -225,22 +225,33 @@ def test_kpv_range():
     return repo, files_to_process
 
     
-
 if __name__=='__main__':
-    print 'starting'
-    ###CONFIGURATION options###################################################
-    PROFILE_NAME = 'example_keith' + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS =  test_kpv_range() #tiny_test()  #ffd_test10() #tiny_test() # test10() #test10() #test_sql_jfk() #fll_local() #test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    COMMENT   = 'try profile from linux repo'
-    LOG_LEVEL = 'WARNING'      # 'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
-    MAKE_KML_FILES=False    # Run times are much slower when KML is True
-    SAVE_ORACLE = True    
-    ###########################################################################
-    
+    ###CONFIGURATION ######################################################### 
+    FILE_REPOSITORY, FILES_TO_PROCESS = test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    PROFILE_NAME = 'example parallel' + '-'+ socket.gethostname()   
+    COMMENT = 'example parallel linux'
+    LOG_LEVEL = 'INFO'       
+    MAKE_KML_FILES = False
+    IS_PARALLEL = True
+    ###############################################################
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
-    helper.run_profile(PROFILE_NAME , module_names, 
-                       LOG_LEVEL, FILES_TO_PROCESS, 
-                       COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
-                       save_oracle=SAVE_ORACLE)
+    print 'file count:', len(FILES_TO_PROCESS)
+    print ' module names', module_names    
+    t0 = time.time()
     
+    if IS_PARALLEL:
+        dview = helper.parallel_directview(PROFILE_NAME, module_names , FILE_REPOSITORY, 
+                                                               LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES)
+        def eng_profile():
+            import staged_helper
+            reload(staged_helper)       
+            staged_helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, 
+                                    COMMENT, MAKE_KML_FILES, file_repository, save_oracle=True, mortal=False )
+        engine_results = dview.apply(eng_profile) 
+    else:
+        helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, 
+                                COMMENT, MAKE_KML_FILES, FILE_REPOSITORY, save_oracle=True, mortal=True )
+
+    print 'time', time.time()-t0
+    print 'done'
