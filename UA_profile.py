@@ -78,7 +78,7 @@ def sustained_max_abs(Param,window=3,_slice=False):
     shift=np.zeros(shape=(2*addint+1,len(absparam)))
     for c in range(-addint,addint+1):
         shift[c+addint]=np.roll(absparam,c,axis=0)
-    x.data[:]=shift.max(axis=0)        
+    x.data[:]=shift.min(axis=0)        
         
     #length=len(Param.array)
     #for c in range(addint,length):
@@ -1250,8 +1250,7 @@ def test_sql_ua_all():
     repo = 'central'
     query = """select file_path from fds_flight_record 
                  where 
-                    file_repository='REPO' 
-                    and rownum<3
+                    file_repository='REPO'
                     """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
@@ -1325,8 +1324,8 @@ if __name__=='__main__':
 if __name__=='__main__':
     ###CONFIGURATION ######################################################### 
     FILE_REPOSITORY, FILES_TO_PROCESS = test_sql_ua_all() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    PROFILE_NAME = 'UA parallel' + '-'+ socket.gethostname()   
-    COMMENT = 'UA parallel linux'
+    PROFILE_NAME = 'UA LOC fix' + '-'+ socket.gethostname()   
+    COMMENT = 'UA fix max sustained function'
     LOG_LEVEL = 'INFO'       
     MAKE_KML_FILES = False
     IS_PARALLEL = False
