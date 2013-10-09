@@ -89,6 +89,8 @@ def get_profile_nodemanager(flt, myvars):
     all_nodes = helper.get_derived_nodes(settings.NODE_MODULES)  #all the FDS derived nodes
     for k,v in requested_nodes.items():  # nodes in this profile
         all_nodes[k]=v
+        
+    ### ???? remove those???        
     for k,v in flt.series.items():  #hdf5 series
         all_nodes[k]=v
         
