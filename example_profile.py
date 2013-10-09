@@ -167,7 +167,7 @@ def test100():
     repo='keith'
     return repo, files_to_process
 
-    
+
 def test_sql_jfk():
     '''sample test set based on query from Oracle fds_flight_record'''
     query = """select distinct file_path from fds_flight_record 
@@ -189,7 +189,7 @@ def test_sql_jfk_local():
                     and orig_icao='KJFK' and dest_icao in ('KFLL','KMCO' )
                     --and rownum<15
                     """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
+    files_to_process = fds_oracle.flight_record_filepaths(query)  #[:40]
     return repo, files_to_process
 
 
@@ -221,18 +221,18 @@ def test_kpv_range():
                        ) 
                 order by file_path
                 """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query)
+    files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
     return repo, files_to_process
 
     
 if __name__=='__main__':
     ###CONFIGURATION ######################################################### 
-    FILE_REPOSITORY, FILES_TO_PROCESS = test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    PROFILE_NAME = 'example parallel' + '-'+ socket.gethostname()   
-    COMMENT = 'example parallel linux'
-    LOG_LEVEL = 'INFO'       
+    FILE_REPOSITORY, FILES_TO_PROCESS = test_kpv_range() #test10() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    PROFILE_NAME = 'example linspace' + '-'+ socket.gethostname()   
+    COMMENT = 'example parallel linux linspace'
+    LOG_LEVEL = 'WARNING'       
     MAKE_KML_FILES = False
-    IS_PARALLEL = True
+    IS_PARALLEL = False
     ###############################################################
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
@@ -241,6 +241,7 @@ if __name__=='__main__':
     t0 = time.time()
     
     if IS_PARALLEL:
+        print "Run 'ipcluster start -n 10' from the command line first!"
         dview = helper.parallel_directview(PROFILE_NAME, module_names , FILE_REPOSITORY, 
                                                                LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES)
         def eng_profile():
