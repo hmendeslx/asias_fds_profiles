@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Example profile module: defines a set of measures that run against 
+Example profile module: defines a set of measures that run against. 
 FDS FlightDataAnalyzer base data.
 @author: KEITHC, April 2013
 """
