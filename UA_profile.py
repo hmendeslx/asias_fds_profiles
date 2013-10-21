@@ -842,7 +842,7 @@ def pkl_check():
 if __name__=='__main__':
     ###CONFIGURATION ######################################################### 
     FILE_REPOSITORY, FILES_TO_PROCESS = test_sql_ua_all() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    PROFILE_NAME = 'UA_parallel_18OCT13' + '-'+ socket.gethostname()   
+    PROFILE_NAME = 'UA_parallel_21OCT13' + '-'+ socket.gethostname()   
     COMMENT = 'UA full run'
     LOG_LEVEL = 'WARNING'       
     MAKE_KML_FILES = False
