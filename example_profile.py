@@ -227,12 +227,12 @@ def test_kpv_range():
     
 if __name__=='__main__':
     ###CONFIGURATION ######################################################### 
-    FILE_REPOSITORY, FILES_TO_PROCESS = test_kpv_range() #test10() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    PROFILE_NAME = 'example linspace' + '-'+ socket.gethostname()   
+    FILE_REPOSITORY, FILES_TO_PROCESS = test10() #test10() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    PROFILE_NAME = 'example parallel test' + '-'+ socket.gethostname()   
     COMMENT = 'example parallel linux linspace'
     LOG_LEVEL = 'WARNING'       
     MAKE_KML_FILES = False
-    IS_PARALLEL = False
+    IS_PARALLEL = True
     ###############################################################
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
@@ -248,7 +248,7 @@ if __name__=='__main__':
             import staged_helper
             reload(staged_helper)       
             staged_helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, 
-                                    COMMENT, MAKE_KML_FILES, file_repository, save_oracle=True, mortal=False )
+                                    COMMENT, MAKE_KML_FILES, file_repository, save_oracle=True, mortal=True )
         engine_results = dview.apply(eng_profile) 
     else:
         helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, 
