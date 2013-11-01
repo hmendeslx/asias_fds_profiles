@@ -27,6 +27,8 @@ from example_profile import (
     SimpleAttribute,
     FileAttribute,
     MydictAttribute,
+    SimpleKTI,
+    SimplerKTI,
 )
 
 
@@ -72,6 +74,45 @@ class TestMydictAttribute(unittest.TestCase):
         da.derive(self.mydict)
         da.set_flight_attr.assert_called_once_with({'testkey': [1, 2, 3]})             
 
+"""           
+class SimpleKTI(KeyTimeInstanceNode):
+    '''a simple KTI. start_datetime is used only to provide a dependency'''
+    def derive(self, start_datetime=A('Start Datetime')):
+        #print 'in SimpleKTI'
+        self.create_kti(3)      
+
+class SimplerKTI(KeyTimeInstanceNode):
+    '''manually built KTI. start_datetime is used only to provide a dependency'''
+    def derive(self, start_datetime=A('Start Datetime')):
+        #print 'in SimpleKTI'
+        kti=KeyTimeInstance(index=700., name='My Simpler KTI') #freq=1hz and offset=0 by default
+        self.append( kti )
+"""
+class TestSimpleKTI(unittest.TestCase):
+    def setUp(self):
+        self.start_datetime = A('Start Datetime', value=datetime(2012,4,1,1,0,0))
+    
+    def test_can_operate(self):
+        self.assertEqual(SimpleKTI.get_operational_combinations(),[('Start Datetime',)])
+
+    def test_derive(self):
+        k = SimpleKTI()
+        k.derive(self.start_datetime )
+        expected = [KeyTimeInstance(index=3, name='Simple KTI')]
+        self.assertEqual(k, expected)
+
+class TestSimplerKTI(unittest.TestCase):
+    def setUp(self):
+        self.start_datetime = A('Start Datetime', value=datetime(2012,4,1,1,0,0))
+    
+    def test_can_operate(self):
+        self.assertEqual(SimpleKTI.get_operational_combinations(),[('Start Datetime',)])
+
+    def test_derive(self):
+        k = SimplerKTI()
+        k.derive(self.start_datetime )
+        expected = [KeyTimeInstance(index=700., name='My Simpler KTI')]
+        self.assertEqual(k, expected)
         
 if __name__=='__main__':
     print 'hi'

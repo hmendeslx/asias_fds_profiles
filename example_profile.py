@@ -56,12 +56,14 @@ class MydictAttribute(FlightAttributeNode):
              
 class SimpleKTI(KeyTimeInstanceNode):
     '''a simple KTI. start_datetime is used only to provide a dependency'''
+    name='Simple KTI'
     def derive(self, start_datetime=A('Start Datetime')):
         #print 'in SimpleKTI'
         self.create_kti(3)      
 
 class SimplerKTI(KeyTimeInstanceNode):
     '''manually built KTI. start_datetime is used only to provide a dependency'''
+    name='My Simpler KTI'
     def derive(self, start_datetime=A('Start Datetime')):
         #print 'in SimpleKTI'
         kti=KeyTimeInstance(index=700., name='My Simpler KTI') #freq=1hz and offset=0 by default
