@@ -61,25 +61,17 @@ class TestFileAttribute(unittest.TestCase):
 
 class TestMydictAttribute(unittest.TestCase):
     def setUp(self):
-        self.myfile = A('Myfile', value="/fake/path")
+        self.mydict = A('Mydict', value={}) 
     
     def test_can_operate(self):
-        self.assertEqual(FileAttribute.get_operational_combinations(),[('Myfile',)])
+        self.assertEqual(MydictAttribute.get_operational_combinations(),[('Mydict',)])
 
     def test_derive(self):
-        fa = FileAttribute()
-        fa.set_flight_attr = Mock()
-        fa.derive(self.myfile)
-        fa.set_flight_attr.assert_called_once_with("/fake/path")             
+        da = MydictAttribute()
+        da.set_flight_attr = Mock()
+        da.derive(self.mydict)
+        da.set_flight_attr.assert_called_once_with({'testkey': [1, 2, 3]})             
 
-"""
-class MydictAttribute(FlightAttributeNode):
-    '''a simple FlightAttribute. tests availability of Filename'''
-    #name = 'FDR Analysis Datetime'
-    def derive(self, mydict=A('Mydict')):
-        mydict.value['testkey'] = [1,2,3]
-        self.set_flight_attr(mydict)
-"""
         
 if __name__=='__main__':
     print 'hi'
