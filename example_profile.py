@@ -43,15 +43,15 @@ class FileAttribute(FlightAttributeNode):
     '''a simple FlightAttribute. tests availability of Filename'''
     #name = 'FDR Analysis Datetime'
     def derive(self, filename=A('Myfile')):
-        self.set_flight_attr(filename)
+        self.set_flight_attr(filename.value)
 
 
 class MydictAttribute(FlightAttributeNode):
-    '''a simple FlightAttribute. tests availability of Filename'''
+    '''a simple FlightAttribute. tests availability of Mydict'''
     #name = 'FDR Analysis Datetime'
     def derive(self, mydict=A('Mydict')):
         mydict.value['testkey'] = [1,2,3]
-        self.set_flight_attr(mydict)
+        self.set_flight_attr(mydict.value)
 
              
 class SimpleKTI(KeyTimeInstanceNode):
