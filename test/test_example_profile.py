@@ -29,6 +29,8 @@ from example_profile import (
     MydictAttribute,
     SimpleKTI,
     SimplerKTI,
+    SimpleKPV,
+    SimplerKPV,
 )
 
 
@@ -74,20 +76,7 @@ class TestMydictAttribute(unittest.TestCase):
         da.derive(self.mydict)
         da.set_flight_attr.assert_called_once_with({'testkey': [1, 2, 3]})             
 
-"""           
-class SimpleKTI(KeyTimeInstanceNode):
-    '''a simple KTI. start_datetime is used only to provide a dependency'''
-    def derive(self, start_datetime=A('Start Datetime')):
-        #print 'in SimpleKTI'
-        self.create_kti(3)      
 
-class SimplerKTI(KeyTimeInstanceNode):
-    '''manually built KTI. start_datetime is used only to provide a dependency'''
-    def derive(self, start_datetime=A('Start Datetime')):
-        #print 'in SimpleKTI'
-        kti=KeyTimeInstance(index=700., name='My Simpler KTI') #freq=1hz and offset=0 by default
-        self.append( kti )
-"""
 class TestSimpleKTI(unittest.TestCase):
     def setUp(self):
         self.start_datetime = A('Start Datetime', value=datetime(2012,4,1,1,0,0))
@@ -101,18 +90,52 @@ class TestSimpleKTI(unittest.TestCase):
         expected = [KeyTimeInstance(index=3, name='Simple KTI')]
         self.assertEqual(k, expected)
 
+
 class TestSimplerKTI(unittest.TestCase):
     def setUp(self):
         self.start_datetime = A('Start Datetime', value=datetime(2012,4,1,1,0,0))
     
     def test_can_operate(self):
-        self.assertEqual(SimpleKTI.get_operational_combinations(),[('Start Datetime',)])
+        self.assertEqual(SimplerKTI.get_operational_combinations(),[('Start Datetime',)])
 
     def test_derive(self):
         k = SimplerKTI()
         k.derive(self.start_datetime )
         expected = [KeyTimeInstance(index=700., name='My Simpler KTI')]
         self.assertEqual(k, expected)
+
+
+class TestSimpleKPV(unittest.TestCase):
+    def setUp(self):
+        self.start_datetime = A('Start Datetime', value=datetime(2012,4,1,1,0,0))
+    
+    def test_can_operate(self):
+        self.assertEqual(SimpleKPV.get_operational_combinations(),[('Start Datetime',)])
+
+    def test_derive(self):
+        k = SimpleKPV()
+        k.derive(self.start_datetime )
+        expected = [KeyPointValue(index=3.0, value=999.9, name='Simple KPV')]
+        self.assertEqual(k, expected)
+
+
+class TestSimplerKPV(unittest.TestCase):
+    def setUp(self):
+        self.start_datetime = A('Start Datetime', value=datetime(2012,4,1,1,0,0))
+    
+    def test_can_operate(self):
+        self.assertEqual(SimplerKPV.get_operational_combinations(),[('Start Datetime',)])
+
+    def test_derive(self):
+        k = SimplerKPV()
+        k.derive(self.start_datetime )
+        expected = [KeyPointValue(index=42.5, value=666.6, name='My Simpler KPV'),
+                            KeyPointValue(index=42.5, value=666.6, name='My Simpler KPV 2'),
+                            ]
+        self.assertEqual(k, expected)
+
+
+
         
 if __name__=='__main__':
     print 'hi'

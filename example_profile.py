@@ -71,6 +71,7 @@ class SimplerKTI(KeyTimeInstanceNode):
     
 class SimpleKPV(KeyPointValueNode):
     '''a simple KPV. start_datetime is used only to provide a dependency'''
+    name='Simple KPV'
     units='fpm'
     def derive(self, start_datetime=A('Start Datetime')):
         self.create_kpv(3.0, 999.9)
