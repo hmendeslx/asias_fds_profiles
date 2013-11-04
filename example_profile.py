@@ -7,6 +7,7 @@ FDS FlightDataAnalyzer base data
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
 import time
 import os, glob, socket
+import numpy as np
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
                                    App, ApproachNode,                      # per approach
                                    P,   DerivedParameterNode,              # time series with continuous values 
@@ -90,14 +91,12 @@ class TCASRAStart(KeyTimeInstanceNode):
 
     def derive(self, tcas=M('TCAS Combined Control'), air=S('Airborne')):
         #print 'in TCASRAStart'
+        # we don't want to distinguish between up and down corrective in this context
+        dn_idx = np.ma.where(tcas.array == 'Down Advisory Corrective')
+        tcas.array[dn_idx] = 'Up Advisory Corrective'
+        
         self.create_ktis_on_state_change(
                     'Up Advisory Corrective',
-                    tcas.array,
-                    change='entering',
-                    phase=air
-                )                           
-        self.create_ktis_on_state_change(
-                    'Down Advisory Corrective',
                     tcas.array,
                     change='entering',
                     phase=air

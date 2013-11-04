@@ -19,7 +19,7 @@ from mock import Mock, call, patch
 from analysis_engine.library import align
 from analysis_engine.node import (
     A, App, ApproachItem, KPV, KTI, load, M, P, KeyPointValue,
-    MappedArray, MultistateDerivedParameterNode,
+    MappedArray, MultistateDerivedParameterNode, SectionNode,
     KeyTimeInstance, Section, S
 )
 
@@ -31,10 +31,32 @@ from example_profile import (
     SimplerKTI,
     SimpleKPV,
     SimplerKPV,
+    TCASRAStart,
 )
 
 
-             
+def buildsection(name, begin, end):
+    '''from FlightDataAnalyzer tests
+       A little routine to make building Sections for testing easier.
+       Example: land = buildsection('Landing', 100, 120)
+    '''
+    result = Section(name, slice(begin, end, None), begin, end)
+    return SectionNode(name, items=[result])
+
+
+def buildsections(*args):
+    '''from FlightDataAnalyzer tests
+       Example: approach = buildsections('Approach', [80,90], [100,110])
+    '''
+    built_list=[]
+    name = args[0]
+    for a in args[1:]:
+        begin,end=a[0],a[1]
+        new_section = Section(name, slice(begin, end, None), begin, end)
+        built_list.append(new_section)
+    return SectionNode(name, items=built_list)
+       
+       
 class TestSimpleAttribute(unittest.TestCase):
     def setUp(self):
         self.start_datetime = A('Start Datetime', value=datetime(2012,4,1,1,0,0))
@@ -135,7 +157,58 @@ class TestSimplerKPV(unittest.TestCase):
         self.assertEqual(k, expected)
 
 
+class TestTCASRAStart(unittest.TestCase):
+    def setUp(self):
+        pass
+    
+    def test_can_operate(self):
+        expected = [('TCAS Combined Control', 'Airborne')]
+        opts = TCASRAStart.get_operational_combinations()
+        self.assertEqual(opts, expected)        
 
+    def test_derive(self):
+        #based on FDS TestTCASRAWarningDuration()
+        values_mapping = {
+            0: 'A',
+            1: 'B',
+            2: 'Drop Track',
+            3: 'Altitude Lost',
+            4: 'Up Advisory Corrective',
+            5: 'Down Advisory Corrective',
+            6: 'G',
+        }
+        tcas = M( 'TCAS Combined Control', array=np.ma.array([0,1,2,3,4,5,4,5,6]),
+                       values_mapping=values_mapping, frequency=1, offset=0,)
+        #                                                                                       _,_, a,a,a,a,a,a,_  
+        #                                                                                                   u,d,u,d
+        #                                                                                                3.5 4.5 5.5 
+        airborne = buildsection('Airborne', 2, 7)
+        node = TCASRAStart()
+        node.derive(tcas, airborne)  # create_ktis_on_state_change() offsets times by 0.5
+        expected = [KeyTimeInstance(index=3.5, name='TCAS RA Start'), ]
+        self.assertEqual(expected,  node)
+        
+"""
+class TCASRAStart(KeyTimeInstanceNode):
+    '''Time of up or down advisory'''
+    name = 'TCAS RA Start'
+
+    def derive(self, tcas=M('TCAS Combined Control'), air=S('Airborne')):
+        #print 'in TCASRAStart'
+        self.create_ktis_on_state_change(
+                    'Up Advisory Corrective',
+                    tcas.array,
+                    change='entering',
+                    phase=air
+                )                           
+        self.create_ktis_on_state_change(
+                    'Down Advisory Corrective',
+                    tcas.array,
+                    change='entering',
+                    phase=air
+                )                           
+        return            
+"""
         
 if __name__=='__main__':
     print 'hi'
