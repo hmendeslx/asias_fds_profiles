@@ -32,6 +32,8 @@ from example_profile import (
     SimpleKPV,
     SimplerKPV,
     TCASRAStart,
+    InitialApproach,
+    DistanceTravelledInAirTemporary,
 )
 
 
@@ -188,27 +190,39 @@ class TestTCASRAStart(unittest.TestCase):
         expected = [KeyTimeInstance(index=3.5, name='TCAS RA Start'), ]
         self.assertEqual(expected,  node)
         
-"""
-class TCASRAStart(KeyTimeInstanceNode):
-    '''Time of up or down advisory'''
-    name = 'TCAS RA Start'
 
-    def derive(self, tcas=M('TCAS Combined Control'), air=S('Airborne')):
-        #print 'in TCASRAStart'
-        self.create_ktis_on_state_change(
-                    'Up Advisory Corrective',
-                    tcas.array,
-                    change='entering',
-                    phase=air
-                )                           
-        self.create_ktis_on_state_change(
-                    'Down Advisory Corrective',
-                    tcas.array,
-                    change='entering',
-                    phase=air
-                )                           
-        return            
+class TestInitialApproach(unittest.TestCase):
+    def setUp(self):
+        pass
+    
+    def test_can_operate(self):
+        expected = [('Approach','Final Approach')]
+        opts = InitialApproach.get_operational_combinations()
+        self.assertEqual(opts, expected)        
+
+    def test_derive(self):
+        approach = buildsection('Approach', 80, 95)
+        final         = buildsection('Final Approach', 90, 95)
+        dbegin = 80
+        dend = 90
+        expected = buildsection('Initial Approach', dbegin, dend)
+        node = InitialApproach()
+        node.derive(approach , final)          
+        self.assertEqual(expected,  node)
+
 """
+class DistanceTravelledInAirTemporary(DerivedParameterNode):
+    '''a simple derived parameter = a new time series'''
+    units='nm'
+    def derive(self, airspeed=P('Airspeed True'), grounded=S('Grounded') ):
+        for section in grounded:                      # zero out travel on the ground
+            airspeed.array[section.slice]=0.0         # this is already a copy 
+        repaired_array = repair_mask(airspeed.array)  # to avoid integration hiccups 
+        adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
+        self.array = adist
+        #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
+"""
+
         
 if __name__=='__main__':
     print 'hi'

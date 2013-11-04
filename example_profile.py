@@ -114,7 +114,7 @@ class InitialApproach(FlightPhaseNode):
         return
 
    
-"""
+
 class DistanceTravelledInAirTemporary(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
     units='nm'
@@ -125,7 +125,7 @@ class DistanceTravelledInAirTemporary(DerivedParameterNode):
         adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
         self.array = adist
         #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
-"""
+
 
 ### Section 3: pre-defined test sets
 def tiny_test():
