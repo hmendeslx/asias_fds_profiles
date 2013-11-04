@@ -112,11 +112,11 @@ class InitialApproach(FlightPhaseNode):
             dend   = min([d.start_edge for d in final]) #exclude approach time
             self.create_phase(slice( dbegin, dend ))
         return
+  
 
-   
-
-class DistanceTravelledInAirTemporary(DerivedParameterNode):
+class DistanceTravelledInAir(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
+    name='Distance Travelled In Air'
     units='nm'
     def derive(self, airspeed=P('Airspeed True'), grounded=S('Grounded') ):
         for section in grounded:                      # zero out travel on the ground

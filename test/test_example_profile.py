@@ -6,15 +6,11 @@ Created on Fri Nov  1 10:35:56 2013
 
 start unit testing
 """
-import os
 import numpy as np
-import sys
 import unittest
-import math
 from datetime import datetime
 
 from mock import Mock, call, patch
-
 
 from analysis_engine.library import align
 from analysis_engine.node import (
@@ -33,7 +29,7 @@ from example_profile import (
     SimplerKPV,
     TCASRAStart,
     InitialApproach,
-    DistanceTravelledInAirTemporary,
+    DistanceTravelledInAir,
 )
 
 
@@ -211,7 +207,7 @@ class TestInitialApproach(unittest.TestCase):
         self.assertEqual(expected,  node)
 
 """
-class DistanceTravelledInAirTemporary(DerivedParameterNode):
+class DistanceTravelledInAir(DerivedParameterNode):
     '''a simple derived parameter = a new time series'''
     units='nm'
     def derive(self, airspeed=P('Airspeed True'), grounded=S('Grounded') ):
@@ -222,10 +218,29 @@ class DistanceTravelledInAirTemporary(DerivedParameterNode):
         self.array = adist
         #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
 """
+class TestDistanceTravelledInAir(unittest.TestCase):
+    def setUp(self):
+        pass
+    
+    def test_can_operate(self):
+        expected = [('Airspeed True','Grounded')]
+        opts = DistanceTravelledInAir.get_operational_combinations()
+        self.assertEqual(opts, expected)        
 
+    def test_derive(self):
+        grounded = buildsections('Grounded', [0,2], [8,10])
+        airspeed = P( 'Airspeed True', array=np.ma.ones(10)*3600., frequency=1., offset=0.)
+        # middle Riemann sum        
+        mid_array = np.array([0., 0., .5, 1.5, 2.5, 3.5, 4.5, 5.5, 6., 6.])        
+        expected = P(name='Distance Travelled In Air', array=mid_array, frequency=1., offset=0.)
+
+        node = DistanceTravelledInAir()
+        node.derive(airspeed, grounded)   
+        actual = node.array
+        np.testing.assert_array_equal(actual, mid_array)
         
 if __name__=='__main__':
-    print 'hi'
+    print 'testing example profile'
     try:
         unittest.main()
     except SystemExit as inst: #ignore extraneous error from interactive prompt
