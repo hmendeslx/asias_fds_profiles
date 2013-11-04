@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 TCAS Profile
+"""
+
+"""
 @author: KEITHC, May 2013
 
 TCAS Elements
@@ -56,7 +59,18 @@ import fds_oracle
 #      DerivedParameters will cause a set of hdf5 files to be generated.
 
 class TCASRASections(FlightPhaseNode):
-    '''filtered TCAS RA alerts.  Generally we use this rather than TCAS Combined Control to id alerts. '''
+    """
+       Sections of filtered TCAS RA alerts.  Generally we use this rather than TCAS Combined Control to id alerts.  
+
+        :param 'TCAS RA': 
+        :type TCAS RA: MultistateDerivedParameterNode
+        :param Liftoff: time of liftoff
+        :type Liftoff: KTI
+        :param Touchdown: time of touchdown 
+        :type Touchdown: KTI
+        :returns: Nothing.  Assigns to self. 
+        :rtype:  self is a SectionNode, which is a list of slices.
+     """ 
     name = 'TCAS RA Sections'
     def derive(self, ra=M('TCAS RA'), off=KTI('Liftoff'), td=KTI('Touchdown') ):
         ras_local = ra.array

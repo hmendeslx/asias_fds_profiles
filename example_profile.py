@@ -2,7 +2,8 @@
 """
 Example profile module: defines a set of measures that run against
 FDS FlightDataAnalyzer base data
-@author: KEITHC, April 2013
+
+@author: KEITHC, started April 2013
 """
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
 import time
@@ -34,22 +35,33 @@ import fds_oracle
 ### Section 2: measure definitions -- attributes, KTI, phase/section, KPV, DerivedParameter
 #      DerivedParameters will cause a set of hdf5 files to be generated.
 class SimpleAttribute(FlightAttributeNode):
-    '''a simple FlightAttribute. start_datetime is used only to provide a dependency'''
-    #name = 'FDR Analysis Datetime'
     def derive(self, start_datetime=A('Start Datetime')):
+        """
+            A simple FlightAttribute. start_datetime is used only to provide a dependency.
+
+            :param start_datetime: not used, but some dependency seems to be required
+            :type start_datetime: FlightAttributeNode
+            :returns: Nothing.  Assigns to self.value.
+            :rtype: N/A
+         """    
         self.set_flight_attr('Keith')
 
 
 class FileAttribute(FlightAttributeNode):
-    '''a simple FlightAttribute. tests availability of Filename'''
-    #name = 'FDR Analysis Datetime'
+    """
+        Tests availability of 'Myfile' filename attribute assigned by staged_helper.py.
+
+        :param Myfile: full path to the data file for the current flight.
+        :type Myfile: string
+        :returns: Nothing.  Assigns to self.value.
+        :rtype: N/A
+     """    
     def derive(self, filename=A('Myfile')):
         self.set_flight_attr(filename.value)
 
 
 class MydictAttribute(FlightAttributeNode):
     '''a simple FlightAttribute. tests availability of Mydict'''
-    #name = 'FDR Analysis Datetime'
     def derive(self, mydict=A('Mydict')):
         mydict.value['testkey'] = [1,2,3]
         self.set_flight_attr(mydict.value)
