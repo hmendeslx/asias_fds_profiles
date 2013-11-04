@@ -55,26 +55,8 @@ import fds_oracle
 ### Section 2: measure definitions -- attributes, KTI, phase/section, KPV, DerivedParameter
 #      DerivedParameters will cause a set of hdf5 files to be generated.
 
-class TCASCtlSections(FlightPhaseNode):  # OLD VERSION 
-    '''TCAS RA sections that pass quality filtering '''
-    name = 'TCAS Ctl Sections'
-    def derive(self, tcas=M('TCAS Combined Control') ): #, off=KTI('Liftoff'), td=KTI('Touchdown') ):
-        ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
-        ras_slices = library.runs_of_ones(ras_local)
-        if ras_slices:
-            for ra_slice in ras_slices:                    
-                self.create_phase( ra_slice )    
-        return
-
-
-class TCASRAStart(KeyTimeInstanceNode):
-    name = 'TCAS RA Start'
-    def derive(self, ra_sections=S('TCAS RA Sections')):
-        for s in ra_sections:
-            self.create_kti(s.start_edge)
-
-
 class TCASRASections(FlightPhaseNode):
+    '''filtered TCAS RA alerts.  Generally we use this rather than TCAS Combined Control to id alerts. '''
     name = 'TCAS RA Sections'
     def derive(self, ra=M('TCAS RA'), off=KTI('Liftoff'), td=KTI('Touchdown') ):
         ras_local = ra.array
@@ -91,6 +73,26 @@ class TCASRASections(FlightPhaseNode):
                 self.create_phase( ra_slice )    
         return
 
+
+class TCASRAStart(KeyTimeInstanceNode):
+    name = 'TCAS RA Start'
+    def derive(self, ra_sections=S('TCAS RA Sections')):
+        for s in ra_sections:
+            self.create_kti(s.start_edge)
+
+
+class TCASCtlSections(FlightPhaseNode):  # OLD VERSION 
+    '''TCAS RA control sections. We will generally use filtered 'TCAS RA' instead.
+        In the future we might want to use both TCAS RA and TCAS Cmb Ctl to id events.
+    '''
+    name = 'TCAS Ctl Sections'
+    def derive(self, tcas=M('TCAS Combined Control') ): 
+        ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
+        ras_slices = library.runs_of_ones(ras_local)
+        if ras_slices:
+            for ra_slice in ras_slices:                    
+                self.create_phase( ra_slice )    
+        return
 
 
 def tcas_vert_spd_up(tcas_up, vert_speed, tcas_vert):
