@@ -1,0 +1,208 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to asias_fds_profile documentation! &mdash; foqa_test\asias_fds_profiles 0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="foqa_test\asias_fds_profiles 0.0 documentation" href="#" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="#">foqa_test\asias_fds_profiles 0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="welcome-to-asias-fds-profile-documentation">
+<h1>Welcome to asias_fds_profile documentation!<a class="headerlink" href="#welcome-to-asias-fds-profile-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+</div>
+<div class="section" id="module-example_profile">
+<span id="example-profile"></span><h1>example_profile<a class="headerlink" href="#module-example_profile" title="Permalink to this headline">¶</a></h1>
+<p>Example profile module: defines a set of measures that run against
+FDS FlightDataAnalyzer base data</p>
+<p>&#64;author: KEITHC, started April 2013</p>
+<dl class="class">
+<dt id="example_profile.SimpleAttribute">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimpleAttribute</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimpleAttribute" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="example_profile.SimpleAttribute.derive">
+<tt class="descname">derive</tt><big>(</big><em>start_datetime=Attribute('Start Datetime'</em>, <em>None)</em><big>)</big><a class="headerlink" href="#example_profile.SimpleAttribute.derive" title="Permalink to this definition">¶</a></dt>
+<dd><p>A simple FlightAttribute. start_datetime is used only to provide a dependency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>start_datetime</strong> (<em>FlightAttributeNode</em>) &#8211; not used, but some dependency seems to be required</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Nothing.  Assigns to self.value.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">N/A</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="example_profile.FileAttribute">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">FileAttribute</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.FileAttribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tests availability of &#8216;Myfile&#8217; filename attribute assigned by staged_helper.py.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Myfile</strong> (<em>string</em>) &#8211; full path to the data file for the current flight.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Nothing.  Assigns to self.value.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">N/A</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-tcas_profile">
+<span id="tcas-profile"></span><h1>tcas_profile<a class="headerlink" href="#module-tcas_profile" title="Permalink to this headline">¶</a></h1>
+<p>TCAS Profile</p>
+<dl class="class">
+<dt id="tcas_profile.TCASRASections">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASRASections</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASRASections" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sections of filtered TCAS RA alerts.  Generally we use this rather than TCAS Combined Control to id alerts.</p>
+<blockquote>
+<div><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">param &#8216;TCAS RA&#8217;:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"></td>
+</tr>
+<tr class="field-even field"><th class="field-name">type TCAS RA:</th><td class="field-body">MultistateDerivedParameterNode</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">param Liftoff:</th><td class="field-body">time of liftoff</td>
+</tr>
+<tr class="field-even field"><th class="field-name">type Liftoff:</th><td class="field-body">KTI</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">param Touchdown:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">time of touchdown</td>
+</tr>
+<tr class="field-even field"><th class="field-name">type Touchdown:</th><td class="field-body">KTI</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">returns:</th><td class="field-body">Nothing.  Assigns to self.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">rtype:</th><td class="field-body">self is a SectionNode, which is a list of slices.</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</dd></dl>
+
+</div>
+<div class="section" id="ua-profile">
+<h1>ua_profile<a class="headerlink" href="#ua-profile" title="Permalink to this headline">¶</a></h1>
+<p>TBD</p>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to asias_fds_profile documentation!</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-example_profile">example_profile</a></li>
+<li><a class="reference internal" href="#module-tcas_profile">tcas_profile</a></li>
+<li><a class="reference internal" href="#ua-profile">ua_profile</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="#">foqa_test\asias_fds_profiles 0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, MITRE\CAASD.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
