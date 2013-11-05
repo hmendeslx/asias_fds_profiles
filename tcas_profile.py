@@ -433,6 +433,7 @@ def change_indexes(myarray):
 
 
 class TCASCombinedControl(KeyPointValueNode):
+    """Reports all Combined Control state changes, masked or not, to support event review"""    
     ''' find tcas_ctl.array.data value changes (first diff)
         for each change point return a kpv using the control name. States:
           ( No Advisory, Clear of Conflict, Drop Track, Altitude Lost,
@@ -443,7 +444,7 @@ class TCASCombinedControl(KeyPointValueNode):
         _change_points = change_indexes(tcas_ctl.array.data) #returns array index
         for cp in _change_points:
             _value = tcas_ctl.array.data[cp]
-            if tcas_ctl.array.mask[cp]:
+            if tcas_ctl.array[cp] == np.ma.masked:
                 _name = 'TCAS Combined Control|masked'
             else:
                 _name = 'TCAS Combined Control|' + tcas_ctl.array[cp]
