@@ -27,6 +27,10 @@ from tcas_profile import (
     TCASAltitudeExceedance,
     TCASRAStandardResponse,
     TCASCombinedControl,
+    
+    TCASUpAdvisory,
+    TCASDownAdvisory,
+    TCASVerticalControl,
 )
 
 ### fixtures
@@ -146,7 +150,7 @@ class TestTCASRAStandardResponse(unittest.TestCase):
 
 class TestTCASCombinedControl(unittest.TestCase):
     def test_can_operate(self):
-        expected = [('TCAS Combined Control', 'TCAS RA Sections')]
+        expected = [('TCAS Combined Control',)] 
         opts = TCASCombinedControl.get_operational_combinations()
         self.assertEqual(opts, expected)        
     
@@ -155,35 +159,68 @@ class TestTCASCombinedControl(unittest.TestCase):
         tcas_ctl = M( 'TCAS Combined Control', 
                               array=np.ma.array([0,0,4,0,0]),
                               values_mapping=values_mapping, frequency=1., offset=0.)
-        ra = buildsection('TCAS RA Sections', 1, 3)
         expected = [ KeyPointValue(index=2, value=4, name='TCAS Combined Control|Up Advisory Corrective'), 
                            ]
         node = TCASCombinedControl()
-        node.derive(tcas_ctl, ra)
+        node.derive(tcas_ctl) 
+        self.assertEqual(expected,  node)
+
+
+class TestTCASUpAdvisory(unittest.TestCase):
+    def test_can_operate(self):
+        expected = [('TCAS Up Advisory', )]
+        opts = TCASUpAdvisory.get_operational_combinations()
+        self.assertEqual(opts, expected)        
+    
+    def test_derive(self):
+        #4: 'Up Advisory Corrective',
+        tcas_up = M( 'TCASUpAdvisory', 
+                              array=np.ma.array([0,0,1,0,0]),
+                              values_mapping=values_mapping, frequency=1., offset=0.)
+        expected = [ KeyPointValue(index=2, value=1, name='TCAS Up Advisory|B'), 
+                              KeyPointValue(index=3, value=0, name='TCAS Up Advisory|A')]
+        node = TCASUpAdvisory()
+        node.derive(tcas_up)
         self.assertEqual(expected,  node)
 
     
-"""
-class TCASCombinedControl(KeyPointValueNode):
-    '''Reports all Combined Control state changes, masked or not, to support event review'''
-    ''' find tcas_ctl.array.data value changes (first diff)
-        for each change point return a kpv using the control name. States:
-          ( No Advisory, Clear of Conflict, Drop Track, Altitude Lost,
-            Up Advisory Corrective, Down Advisory Corrective, Preventive )            
-    '''
-    units = 'state'    
-    def derive(self, tcas_ctl=M('TCAS Combined Control'), ra_sections = S('TCAS RA Sections') ):
-        _change_points = change_indexes(tcas_ctl.array.data) #returns array index
-        for cp in _change_points:
-            _value = tcas_ctl.array.data[cp]
-            if tcas_ctl.array.mask[cp]:
-                _name = 'TCAS Combined Control|masked'
-            else:
-                _name = 'TCAS Combined Control|' + tcas_ctl.array[cp]
-            if cp>0 and _value and _name:
-                kpv = KeyPointValue(index=cp, value=_value, name=_name)
-                self.append(kpv)
-"""    
+class TestTCASDownAdvisory(unittest.TestCase):
+    def test_can_operate(self):
+        expected = [('TCAS Down Advisory', )]
+        opts = TCASDownAdvisory.get_operational_combinations()
+        self.assertEqual(opts, expected)        
+    
+    def test_derive(self):
+        #4: 'Up Advisory Corrective',
+        tcas_down = M( 'TCASDownAdvisory', 
+                              array=np.ma.array([0,0,1,0,0]),
+                              values_mapping=values_mapping, frequency=1., offset=0.)
+        expected = [ KeyPointValue(index=2, value=1, name='TCAS Down Advisory|B'), 
+                              KeyPointValue(index=3, value=0, name='TCAS Down Advisory|A')]
+        node = TCASDownAdvisory()
+        node.derive(tcas_down)
+        self.assertEqual(expected,  node)
+
+    
+    
+class TestTCASVerticalControl(unittest.TestCase):
+    def test_can_operate(self):
+        expected = [('TCAS Vertical Control', )]
+        opts = TCASVerticalControl.get_operational_combinations()
+        self.assertEqual(opts, expected)        
+    
+    def test_derive(self):
+        #4: 'Up Advisory Corrective',
+        tcas_vert = M( 'TCAS Vertical Control', 
+                              array=np.ma.array([0,0,1,0,0]),
+                              values_mapping=values_mapping, frequency=1., offset=0.)
+        expected = [ KeyPointValue(index=2, value=1, name='TCAS Vertical Control|B'), 
+                              KeyPointValue(index=3, value=0, name='TCAS Vertical Control|A')]
+        node = TCASVerticalControl()
+        node.derive(tcas_vert)
+        self.assertEqual(expected,  node)
+
+
         
 if __name__=='__main__':
     print 'testing tcas profile'

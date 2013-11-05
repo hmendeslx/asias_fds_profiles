@@ -440,7 +440,7 @@ class TCASCombinedControl(KeyPointValueNode):
             Up Advisory Corrective, Down Advisory Corrective, Preventive )            
     '''
     units = 'state'    
-    def derive(self, tcas_ctl=M('TCAS Combined Control'), ra_sections = S('TCAS RA Sections') ):
+    def derive(self, tcas_ctl=M('TCAS Combined Control')):    #, ra_sections = S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_ctl.array.data) #returns array index
         for cp in _change_points:
             _value = tcas_ctl.array.data[cp]
@@ -457,13 +457,13 @@ class TCASCombinedControl(KeyPointValueNode):
 class TCASUpAdvisory(KeyPointValueNode):
     """Reports all Up Advisory state changes, masked or not, to support event review"""
     units = 'state'        
-    def derive(self, tcas_up=M('TCAS Up Advisory'), ra_sections=S('TCAS RA Sections') ):
+    def derive(self, tcas_up=M('TCAS Up Advisory') ):
         _change_points = change_indexes(tcas_up.array.data) #returns array index
         print 'up', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_up.array.data[cp]
-            if tcas_up.array.mask[cp]:
+            if tcas_up.array[cp] == np.ma.masked:
                 _name = 'TCAS Up Advisory|masked'
             else:
                 _name = 'TCAS Up Advisory|' + tcas_up.array[cp]
@@ -474,13 +474,13 @@ class TCASUpAdvisory(KeyPointValueNode):
 class TCASDownAdvisory(KeyPointValueNode):
     """Reports all Down Advisory state changes, masked or not, to support event review"""
     units = 'state'    
-    def derive(self, tcas_down=M('TCAS Down Advisory'), ra_sections = S('TCAS RA Sections') ):
+    def derive(self, tcas_down=M('TCAS Down Advisory')):
         _change_points = change_indexes(tcas_down.array.data) #returns array index
         print 'down', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_down.array.data[cp]
-            if tcas_down.array.mask[cp]:
+            if tcas_down.array[cp] == np.ma.masked:
                 _name = 'TCAS Down Advisory|masked'
             else:
                 _name = 'TCAS Down Advisory|' + tcas_down.array[cp]
@@ -494,13 +494,13 @@ class TCASVerticalControl(KeyPointValueNode):
         Advisory is one of the following types: Crossing Reversal Increase Maintain    
     """
     units = 'state'    
-    def derive(self, tcas_vrt=M('TCAS Vertical Control'), ra_sections = S('TCAS RA Sections')):
+    def derive(self, tcas_vrt=M('TCAS Vertical Control')):
         _change_points = change_indexes(tcas_vrt.array.data) #returns array index
         print 'vert', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_vrt.array.data[cp]
-            if tcas_vrt.array.mask[cp]:
+            if tcas_vrt.array[cp] == np.ma.masked:
                 _name = 'TCAS Vertical Control|masked'
             else:
                 _name = 'TCAS Vertical Control|' + tcas_vrt.array[cp]
@@ -520,7 +520,7 @@ class TCASSensitivity(KeyPointValueNode):
         _change_points = change_indexes(tcas_sens.array.data) #returns array index
         for cp in _change_points:
             _value = tcas_sens.array.data[cp]
-            if tcas_sens.array.mask[cp]:
+            if tcas_sens.array[cp] == np.ma.masked:
                 _name = 'TCAS Sensitivity|masked'
             else:
                 _name = 'TCAS Sensitivity|' + tcas_sens.array[cp]
