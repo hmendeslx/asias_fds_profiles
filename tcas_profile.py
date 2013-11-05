@@ -79,11 +79,12 @@ class TCASRASections(FlightPhaseNode):
         # put together runs separated by short drop-outs        
         ras_slicesb = library.slices_remove_small_gaps(ras_slices, time_limit=2, hz=1)        
         for ra_slice in ras_slicesb:                    
+            print 'unfiltered ra section', ra_slice
             is_post_liftoff =  (ra_slice.start - off.get_first().index) > 10 
             is_pre_touchdown = (td.get_first().index - ra_slice.start ) > 10 
             duration = ra_slice.stop-ra_slice.start                     
             if is_post_liftoff and is_pre_touchdown  and 3.0 <= duration < 300.0: #ignore if too short to do anything
-                #print ' ra section', ra_slice
+                print 'filtered ra section', ra_slice
                 self.create_phase( ra_slice )    
         return
 
@@ -307,10 +308,15 @@ class TCASRAResponsePlot(DerivedParameterNode):
                       tstart, tend
                       )  
             #helper.show_plot(plt)                      
-            fname = filename.value.replace('.hdf5', '.png')
-            helper.save_plot(plt, fname)
+
+            filebase = os.path.basename(filename.value)                                            
+            fname = settings.PROFILE_REPORTS_PATH+ filebase.replace('.hdf5', '.png')            
+
+            plt.draw()
+            plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
+            plt.close()
         self.array = std_vert_spd.array
-        print 'finishing', filename
+        print 'finishing', fname
         return
 #"""
 
@@ -320,6 +326,7 @@ class TCASAltitudeExceedance(KeyPointValueNode):
     def derive(self, ra_sections=S('TCAS RA Sections'),  tcas_ctl=M('TCAS Combined Control'),
                      tcas_up   =  M('TCAS Up Advisory'), tcas_down =  M('TCAS Down Advisory'), 
                      std=P('TCAS RA Standard Response'), vertspd=P('Vertical Speed') ):
+        print 'in Alt Exceed'
         for ra in ra_sections:
             exceedance=0
             deviation=0
@@ -334,7 +341,7 @@ class TCASAltitudeExceedance(KeyPointValueNode):
                 #print 't vert std DEV', t, vertspd.array[t], std.array[t], deviation
                 if deviation and deviation!=0:
                     exceedance += deviation
-            #print 'Alt Exceed', exceedance
+            print 'Alt Exceed', exceedance
             exceedance = exceedance / 60.0 # min to sec
             self.create_kpv(ra.start_edge, exceedance)
 
@@ -447,6 +454,7 @@ class TCASCombinedControl(KeyPointValueNode):
 
 ###TODO try np.ediff1d(), use airborne or add simple phase to kpv
 class TCASUpAdvisory(KeyPointValueNode):
+    """Reports all Up Advisory state changes, masked or not, to support event review"""
     units = 'state'        
     def derive(self, tcas_up=M('TCAS Up Advisory'), ra_sections=S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_up.array.data) #returns array index
@@ -463,6 +471,7 @@ class TCASUpAdvisory(KeyPointValueNode):
 
 
 class TCASDownAdvisory(KeyPointValueNode):
+    """Reports all Down Advisory state changes, masked or not, to support event review"""
     units = 'state'    
     def derive(self, tcas_down=M('TCAS Down Advisory'), ra_sections = S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_down.array.data) #returns array index
@@ -479,12 +488,10 @@ class TCASDownAdvisory(KeyPointValueNode):
             
             
 class TCASVerticalControl(KeyPointValueNode):
-    '''Advisory is one of the following types
-           Crossing
-           Reversal
-           Increase
-           Maintain    
-    '''
+    """Reports all Vertical Control state changes, masked or not, to support event review"""
+    """
+        Advisory is one of the following types: Crossing Reversal Increase Maintain    
+    """
     units = 'state'    
     def derive(self, tcas_vrt=M('TCAS Vertical Control'), ra_sections = S('TCAS RA Sections')):
         _change_points = change_indexes(tcas_vrt.array.data) #returns array index
@@ -583,7 +590,7 @@ def tiny_test():
     input_dir  = settings.BASE_DATA_PATH + 'tiny_test/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='keith PC'
+    repo='linux'
     return repo, files_to_process
 
 
@@ -602,9 +609,10 @@ def ra_sfo_sweep():
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
 
+
 def ra_all_sweep():
     '''check all flights for 'TCAS RA' to capture additional RAs    '''
-    repo = 'central'
+    repo = 'linux'
     query="""select distinct f.file_path 
                 from fds_flight_record f 
                  where  f.file_repository='REPO' 
@@ -631,20 +639,39 @@ def ra_redo():
             group by f.file_path
             """
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    #files_to_process =  [ f for f in files_to_process if ('N563JB' in f)]
     return repo, files_to_process
 
 
+def ra_quickcheck():
+    """an ez to find but incomplete set of RAs for use in testing"""
+    repo = 'linux'
+    query="""select distinct f.file_path 
+                from fds_flight_record f join fds_kpv kpv 
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
+                 where f.file_repository='REPO' 
+                   and f.base_file_path is not null
+                   and f.dest_icao='KSFO'
+                   and kpv.name='TCAS RA Reaction Delay'
+                """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)[:4]
+    return repo, files_to_process
+
+    
+
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    PROFILE_NAME = 'tcas_keith'  + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS = ra_redo() #ra_all_sweep() #ra_measure_set_central() #ra_measure_set_sfo() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
-    COMMENT   = 'recalc all using series TCAS RA instead of Combined Control'
-    LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    PROFILE_NAME = 'tcas_chk'  + '-'+ socket.gethostname()   
+    FILE_REPOSITORY, FILES_TO_PROCESS = ra_quickcheck() #tiny_test() #ra_redo() #ra_all_sweep() #ra_measure_set_central() #ra_measure_set_sfo() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
+    COMMENT   = 'quick check'
+    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     
     module_names = [ os.path.basename(__file__).replace('.py','') ] #helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
-    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, FILE_REPOSITORY )
+    status = helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, 
+                                                COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
+                                                save_oracle=True, mortal=True)
 
+    print status
+    print 'done'
