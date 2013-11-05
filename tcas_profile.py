@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-TCAS Profile
+TCAS Profile is a draft set of measures intended to roughly parallel existing ASIAS TCAS metrics.
+The profile also includes a number of nodes intended to help in diagnosing individual events, as
+an aid to both development and quality control.
 """
 
 """
@@ -61,15 +63,7 @@ import fds_oracle
 class TCASRASections(FlightPhaseNode):
     """
        Sections of filtered TCAS RA alerts.  Generally we use this rather than TCAS Combined Control to id alerts.  
-
-        :param 'TCAS RA': 
-        :type TCAS RA: MultistateDerivedParameterNode
-        :param Liftoff: time of liftoff
-        :type Liftoff: KTI
-        :param Touchdown: time of touchdown 
-        :type Touchdown: KTI
-        :returns: Nothing.  Assigns to self. 
-        :rtype:  self is a SectionNode, which is a list of slices.
+           Currently filters are based on event duration and event timing relative to liftoff and touchdown.
      """ 
     name = 'TCAS RA Sections'
     def derive(self, ra=M('TCAS RA'), off=KTI('Liftoff'), td=KTI('Touchdown') ):
@@ -90,6 +84,7 @@ class TCASRASections(FlightPhaseNode):
 
 
 class TCASRAStart(KeyTimeInstanceNode):
+    '''A KTI delineating the start of each TCAS RA section.'''
     name = 'TCAS RA Start'
     def derive(self, ra_sections=S('TCAS RA Sections')):
         for s in ra_sections:
@@ -97,8 +92,9 @@ class TCASRAStart(KeyTimeInstanceNode):
 
 
 class TCASCtlSections(FlightPhaseNode):  # OLD VERSION 
-    '''TCAS RA control sections. We will generally use filtered 'TCAS RA' instead.
-        In the future we might want to use both TCAS RA and TCAS Cmb Ctl to id events.
+    '''TCAS RA  Combined Control sections. 
+       Currently we are relying primarily on 'TCAS RA' instead of Combined Control to ID RAs.
+        In the future we might want to use both TCAS RA and Combined Control  jointly.
     '''
     name = 'TCAS Ctl Sections'
     def derive(self, tcas=M('TCAS Combined Control') ): 

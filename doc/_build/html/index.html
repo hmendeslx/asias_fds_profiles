@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to asias_fds_profile documentation! &mdash; foqa_test\asias_fds_profiles 0.0 documentation</title>
+    <title>Welcome to asias_fds_profile documentation &mdash; foqa_test\asias_fds_profiles 0.0 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -46,7 +46,13 @@
           <div class="body">
             
   <div class="section" id="welcome-to-asias-fds-profile-documentation">
-<h1>Welcome to asias_fds_profile documentation!<a class="headerlink" href="#welcome-to-asias-fds-profile-documentation" title="Permalink to this headline">¶</a></h1>
+<h1>Welcome to asias_fds_profile documentation<a class="headerlink" href="#welcome-to-asias-fds-profile-documentation" title="Permalink to this headline">¶</a></h1>
+<p>&#8216;asias_fds_profiles&#8217; are a set of Python modules intended for use with
+Flight Data Services FlightDataAnalyzer.</p>
+<p>Each module defines a themed set of measures, some of which correspond to
+ASIAS benchmarks.</p>
+<p>As of Fall 2013, the profiles have been used in evaluation and testing against a limited
+set of test flights, and should not be regarded as fully mature.</p>
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
 <ul class="simple">
@@ -55,84 +61,116 @@
 </div>
 <div class="section" id="module-example_profile">
 <span id="example-profile"></span><h1>example_profile<a class="headerlink" href="#module-example_profile" title="Permalink to this headline">¶</a></h1>
-<p>Example profile module: defines a set of measures that run against
-FDS FlightDataAnalyzer base data</p>
-<p>&#64;author: KEITHC, started April 2013</p>
+<p>example_profile defines a set of measure nodes that run against FDS FlightDataAnalyzer base data.
+All the major node types are covered.  The emphasis is on manually constructing extremely simple measures, to
+better understand how the node types are structured.</p>
+<p>There are also a couple of examples where the node is derived from other measures, which is the more typical case.</p>
 <dl class="class">
 <dt id="example_profile.SimpleAttribute">
 <em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimpleAttribute</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimpleAttribute" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
-<dt id="example_profile.SimpleAttribute.derive">
-<tt class="descname">derive</tt><big>(</big><em>start_datetime=Attribute('Start Datetime'</em>, <em>None)</em><big>)</big><a class="headerlink" href="#example_profile.SimpleAttribute.derive" title="Permalink to this definition">¶</a></dt>
-<dd><p>A simple FlightAttribute. start_datetime is used only to provide a dependency.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>start_datetime</strong> (<em>FlightAttributeNode</em>) &#8211; not used, but some dependency seems to be required</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Nothing.  Assigns to self.value.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">N/A</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
+<dd><p>A simple FlightAttribute constructed using the node.set_flight_attr() method. 
+start_datetime is used only to provide a dependency, which appears to be a requirement.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="example_profile.FileAttribute">
 <em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">FileAttribute</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.FileAttribute" title="Permalink to this definition">¶</a></dt>
-<dd><p>Tests availability of &#8216;Myfile&#8217; filename attribute assigned by staged_helper.py.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Myfile</strong> (<em>string</em>) &#8211; full path to the data file for the current flight.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Nothing.  Assigns to self.value.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">N/A</td>
-</tr>
-</tbody>
-</table>
+<dd><dl class="docutils">
+<dt>Tests availability of &#8216;Myfile&#8217; filename attribute, </dt>
+<dd>assigned by staged_helper.py via the aircraft_info dictionary.</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="example_profile.MydictAttribute">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">MydictAttribute</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.MydictAttribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>a simple FlightAttribute to tests availability of Mydict, 
+a dictionary that was assigned by staged_helper.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="example_profile.SimpleKTI">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimpleKTI</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimpleKTI" title="Permalink to this definition">¶</a></dt>
+<dd><p>a simple KTI=Key Time Instance. start_datetime is used only to provide a dependency</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="example_profile.SimplerKTI">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimplerKTI</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimplerKTI" title="Permalink to this definition">¶</a></dt>
+<dd><p>manually built KTI, illustrating how KeyTimeInstanceNode act like a list of KTI objects.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="example_profile.SimpleKPV">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimpleKPV</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimpleKPV" title="Permalink to this definition">¶</a></dt>
+<dd><p>a simple KPV. start_datetime is used only to provide a dependency</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="example_profile.SimplerKPV">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimplerKPV</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimplerKPV" title="Permalink to this definition">¶</a></dt>
+<dd><p>manually built KPV, illustrating how KeyPointValueNode act like a list of KPV objects.
+Also shows how a  KPV node can contain KPV objects with different names.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="example_profile.TCASRAStart">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">TCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.TCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time of up or down advisory, 
+a KTI based on TCAS Combined Control during the Airborne phase of flight.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="example_profile.InitialApproach">
+<em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">InitialApproach</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.InitialApproach" title="Permalink to this definition">¶</a></dt>
+<dd><p>A phase of derived from the &#8216;Approach&#8217; and &#8216;Final Appraoch&#8217; phases.  
+It covers the time interval from beginning of &#8216;Approach&#8217; to beginning of &#8216;Final Approach&#8217;.</p>
+</dd></dl>
+
+<dl class="class">
+<dt>
+<tt class="descname">DistanceTravelledInAir(name='', array=masked_array(data = [],</tt></dt>
+<dt>
+<tt class="descname">mask = False,</tt></dt>
+<dt>
+<tt class="descname">fill_value = 1e+20)</tt></dt>
+<dt>
+<tt class="descname">, frequency=1, offset=0, data_type=None, *args, **kwargs)</tt></dt>
+<dd><p>A simple derived parameter, i.e. a derived time series.  
+It may be used as an input to other calculations, but our current policy (Nov 2013) is not
+to store it to disk.</p>
+<p>Exercises the FDS integrate() function to derive distance from airspeed.  
+The calculation is limited to periods when the aircraft is not in the &#8216;Grounded&#8217; phase of flight.</p>
 </dd></dl>
 
 </div>
 <div class="section" id="module-tcas_profile">
 <span id="tcas-profile"></span><h1>tcas_profile<a class="headerlink" href="#module-tcas_profile" title="Permalink to this headline">¶</a></h1>
-<p>TCAS Profile</p>
+<p>TCAS Profile is a draft set of measures intended to roughly parallel existing ASIAS TCAS metrics.
+The profile also includes a number of nodes intended to help in diagnosing individual events, as
+an aid to both development and quality control.</p>
 <dl class="class">
 <dt id="tcas_profile.TCASRASections">
 <em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASRASections</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASRASections" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sections of filtered TCAS RA alerts.  Generally we use this rather than TCAS Combined Control to id alerts.</p>
+<dd><dl class="docutils">
+<dt>Sections of filtered TCAS RA alerts.  Generally we use this rather than TCAS Combined Control to id alerts.  </dt>
+<dd>Currently filters are based on event duration and event timing relative to liftoff and touchdown.</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASRAStart">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>A KTI delineating the start of each TCAS RA section.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASCtlSections">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASCtlSections</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASCtlSections" title="Permalink to this definition">¶</a></dt>
+<dd><p>TCAS RA  Combined Control sections. 
+Currently we are relying primarily on &#8216;TCAS RA&#8217; instead of Combined Control to ID RAs.</p>
 <blockquote>
-<div><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name" colspan="2">param &#8216;TCAS RA&#8217;:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"></td>
-</tr>
-<tr class="field-even field"><th class="field-name">type TCAS RA:</th><td class="field-body">MultistateDerivedParameterNode</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">param Liftoff:</th><td class="field-body">time of liftoff</td>
-</tr>
-<tr class="field-even field"><th class="field-name">type Liftoff:</th><td class="field-body">KTI</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">param Touchdown:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">time of touchdown</td>
-</tr>
-<tr class="field-even field"><th class="field-name">type Touchdown:</th><td class="field-body">KTI</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">returns:</th><td class="field-body">Nothing.  Assigns to self.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">rtype:</th><td class="field-body">self is a SectionNode, which is a list of slices.</td>
-</tr>
-</tbody>
-</table>
-</div></blockquote>
+<div>In the future we might want to use both TCAS RA and Combined Control  jointly.</div></blockquote>
 </dd></dl>
 
 </div>
@@ -157,7 +195,7 @@ FDS FlightDataAnalyzer base data</p>
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Welcome to asias_fds_profile documentation!</a><ul>
+<li><a class="reference internal" href="#">Welcome to asias_fds_profile documentation</a><ul>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-example_profile">example_profile</a></li>

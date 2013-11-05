@@ -3,8 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to asias_fds_profile documentation!
-=====================================
+Welcome to asias_fds_profile documentation
+==========================================
+'asias_fds_profiles' are a set of Python modules intended for use with 
+Flight Data Services FlightDataAnalyzer.
+
+Each module defines a themed set of measures, some of which correspond to
+ASIAS benchmarks.
+
+As of Fall 2013, the profiles have been used in evaluation and testing against a limited
+set of test flights, and should not be regarded as fully mature.
 
 Contents:
 
@@ -15,18 +23,37 @@ example_profile
 ===============
 .. automodule:: example_profile
 
+
 .. autoclass:: SimpleAttribute
-    :members:
 
 .. autoclass:: FileAttribute
-    :members:
+
+.. autoclass:: MydictAttribute
+
+.. autoclass:: SimpleKTI
+
+.. autoclass:: SimplerKTI
+
+.. autoclass:: SimpleKPV
+
+.. autoclass:: SimplerKPV
+
+.. autoclass:: TCASRAStart
+
+.. autoclass:: InitialApproach
+
+.. autoclass:: DistanceTravelledInAir
+
 
 tcas_profile
 ============
 .. automodule:: tcas_profile
 
 .. autoclass:: TCASRASections
-    :members:
+
+.. autoclass:: TCASRAStart
+
+.. autoclass:: TCASCtlSections
 
 ua_profile
 ==========
