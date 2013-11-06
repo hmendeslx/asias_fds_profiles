@@ -91,11 +91,12 @@ class TCASRAStart(KeyTimeInstanceNode):
             self.create_kti(s.start_edge)
 
 
-class TCASCtlSections(FlightPhaseNode):  # OLD VERSION 
-    '''TCAS RA  Combined Control sections. 
+class TCASCtlSections(FlightPhaseNode):
+    """
+       TCAS RA  Combined Control sections. 
        Currently we are relying primarily on 'TCAS RA' instead of Combined Control to ID RAs.
-        In the future we might want to use both TCAS RA and Combined Control  jointly.
-    '''
+       In the future we might want to use both TCAS RA and Combined Control  jointly.
+    """
     name = 'TCAS Ctl Sections'
     def derive(self, tcas=M('TCAS Combined Control') ): 
         ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
@@ -107,7 +108,8 @@ class TCASCtlSections(FlightPhaseNode):  # OLD VERSION
 
 
 def tcas_vert_spd_up(tcas_up, vert_speed, tcas_vert):
-    '''determine the change in vertical speed commanded  by a tcas ra 
+    '''
+    determine the change in vertical speed commanded  by a tcas ra 
             if TCAS combined control is Up Advisory
     '''
     upcmd = tcas_up
@@ -276,9 +278,11 @@ def ra_plot(array_dict, tcas_ra_array, tcas_ctl_array, tcas_up_array, tcas_down_
     return plt
     
 
-#"""
+#'''
 class TCASRAResponsePlot(DerivedParameterNode):
-    '''dummy node for diagnostic plotting '''
+    """
+    A dummy node to generate detailed time series plots of TCAS events to PROFILE_REPORTS_PATH.
+    """
     name = "TCAS RA Response Plot"
     def derive(self, std_vert_spd = P('TCAS RA Standard Response'), 
                      tcas_ra   =  M('TCAS RA'),                      
@@ -314,10 +318,12 @@ class TCASRAResponsePlot(DerivedParameterNode):
         self.array = std_vert_spd.array
         print 'finishing', fname
         return
-#"""
+#'''
 
 class TCASAltitudeExceedance(KeyPointValueNode):
-    '''Actual vs Standard Response.  Assumes 1 hz params'''
+    """
+    KPV of vertical speed relative to Standard Response.  Currently assumes 1 hz params.
+    """
     name = 'TCAS RA Altitude Exceedance'
     def derive(self, ra_sections=S('TCAS RA Sections'),  tcas_ctl=M('TCAS Combined Control'),
                      tcas_up   =  M('TCAS Up Advisory'), tcas_down =  M('TCAS Down Advisory'), 
@@ -343,15 +349,21 @@ class TCASAltitudeExceedance(KeyPointValueNode):
 
 
 class TCASRAStandardResponse(DerivedParameterNode):
-    '''standard pilot response -- a vertical speed curve to use as a reference
-        source for standard response time and acceleration:
+    """
+        Time series of TCAS RA standard response in terms of vertial speed.
+    
+        Standard pilot response is a vertical speed curve to use as a reference.
+        Source for standard response time and acceleration:
+        
                "Introduction to TCAS II version 7.1" 
                 Federal Aviation Administration, February 28, 2011.  p. 39
             
-        initial response time = 5 sec    (2.5 sec for reversal)
-        acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)
-        maintain advised fpm until end
-    '''
+        Initial response time = 5 sec    (2.5 sec for reversal)
+        
+        Acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)
+        
+        Maintain advised fpm until end.
+    """
     name = 'TCAS RA Standard Response'
     units='fpm'
     
@@ -451,7 +463,9 @@ class TCASCombinedControl(KeyPointValueNode):
 
 ###TODO try np.ediff1d(), use airborne or add simple phase to kpv
 class TCASUpAdvisory(KeyPointValueNode):
-    """Reports all Up Advisory state changes, masked or not, to support event review"""
+    """
+    KPV reports all Up Advisory state changes, masked or not, to support event review.
+    """
     units = 'state'        
     def derive(self, tcas_up=M('TCAS Up Advisory') ):
         _change_points = change_indexes(tcas_up.array.data) #returns array index
@@ -468,7 +482,9 @@ class TCASUpAdvisory(KeyPointValueNode):
 
 
 class TCASDownAdvisory(KeyPointValueNode):
-    """Reports all Down Advisory state changes, masked or not, to support event review"""
+    """
+    KPV reports all Down Advisory state changes, masked or not, to support event review.
+    """
     units = 'state'    
     def derive(self, tcas_down=M('TCAS Down Advisory')):
         _change_points = change_indexes(tcas_down.array.data) #returns array index
@@ -485,9 +501,9 @@ class TCASDownAdvisory(KeyPointValueNode):
             
             
 class TCASVerticalControl(KeyPointValueNode):
-    """Reports all Vertical Control state changes, masked or not, to support event review"""
     """
-        Advisory is one of the following types: Crossing Reversal Increase Maintain    
+    KPV reports all Vertical Control state changes, masked or not, to support event review.
+    Advisory is one of the following types: Crossing, Reversal, Increase, Maintain.    
     """
     units = 'state'    
     def derive(self, tcas_vrt=M('TCAS Vertical Control')):
@@ -504,13 +520,10 @@ class TCASVerticalControl(KeyPointValueNode):
             self.append(kpv)
 
                                  
-class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
-    name = 'TCAS RA Start Pilot Sensitivity Mode'
-    def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra=KTI('TCAS RA Start')):
-        self.create_kpvs_at_ktis(tcas_sens.array, ra)
-
-
 class TCASSensitivity(KeyPointValueNode):
+    """
+    KPV reports all TCAS Sensitivity Model state changes, masked or not, to support event review.
+    """
     name = 'TCAS Pilot Sensitivity Mode'
     def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra_sections=S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_sens.array.data) #returns array index
@@ -523,7 +536,19 @@ class TCASSensitivity(KeyPointValueNode):
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
 
+
+class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports TCAS Sensitivity Mode at the start of each RA.
+    """
+    name = 'TCAS RA Start Pilot Sensitivity Mode'
+    def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra=KTI('TCAS RA Start')):
+        self.create_kpvs_at_ktis(tcas_sens.array, ra)
+
 class VerticalSpeedAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Vertical Speed at the start of each RA.
+    """
     units = 'fpm'
     name = 'TCAS RA Start Vertical Speed'
     def derive(self, vrt_spd=P('Vertical Speed'), ra=KTI('TCAS RA Start')):
@@ -531,6 +556,9 @@ class VerticalSpeedAtTCASRAStart(KeyPointValueNode):
 
 
 class AltitudeQNHAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Altitude QNH at the start of each RA.
+    """
     units = 'fpm'
     name = 'TCAS RA Start Altitude QNH'
     def derive(self, vrt_spd=P('Altitude QNH'), ra=KTI('TCAS RA Start')):
@@ -538,6 +566,9 @@ class AltitudeQNHAtTCASRAStart(KeyPointValueNode):
 
 
 class PitchAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Pitch Angle at the start of each RA.
+    """
     units = 'deg'
     name = 'TCAS RA Start Pitch'
     def derive(self, pitch=P('Pitch'), ra=KTI('TCAS RA Start')):
@@ -545,6 +576,9 @@ class PitchAtTCASRAStart(KeyPointValueNode):
 
 
 class RollAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Roll Angle at the start of each RA.
+    """
     units = 'deg'
     name = 'TCAS RA Start Roll Abs'
     def derive(self, roll=P('Roll'), ra=KTI('TCAS RA Start')):
@@ -552,6 +586,9 @@ class RollAtTCASRAStart(KeyPointValueNode):
 
 
 class AirspeedAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Airspeed at the start of each RA.
+    """
     units = 'kts'
     name = 'TCAS RA Start Airspeed'
     def derive(self, airspeed=P('Airspeed'), ra=KTI('TCAS RA Start')):
@@ -559,7 +596,10 @@ class AirspeedAtTCASRAStart(KeyPointValueNode):
 
 
 class AutopilotAtTCASRAStart(KeyPointValueNode):
-    '''1=Engaged, otherwise Disengaged'''
+    """
+    KPV reports Autopilot status  at the start of each RA.
+    '1=Engaged, otherwise Disengaged
+    """
     name = 'TCAS RA Start Autopilot'
     def derive(self, ap=P('AP Engaged'), ra=KTI('TCAS RA Start')):
         #print 'AUTOPILOT'
@@ -567,7 +607,10 @@ class AutopilotAtTCASRAStart(KeyPointValueNode):
 
 
 class TCASRATimeToAPDisengage(KeyPointValueNode):
-    '''adapted from FDS 'TCAS RA To AP Disengaged Duration', but uses TCAS RA Start'''
+    """
+    KPV reports to disengage Autopilot after a TCAS RA.
+    Adapted from FDS 'TCAS RA To AP Disengaged Duration', but uses TCAS RA Start to define events.
+    """
     name = 'TCAS RA Time To AP Disengage'
     units = 's'
     def derive(self, ap_offs=KTI('AP Disengaged Selection'), ras=S('TCAS RA Sections') ):

@@ -168,9 +168,130 @@ an aid to both development and quality control.</p>
 <dt id="tcas_profile.TCASCtlSections">
 <em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASCtlSections</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASCtlSections" title="Permalink to this definition">¶</a></dt>
 <dd><p>TCAS RA  Combined Control sections. 
-Currently we are relying primarily on &#8216;TCAS RA&#8217; instead of Combined Control to ID RAs.</p>
+Currently we are relying primarily on &#8216;TCAS RA&#8217; instead of Combined Control to ID RAs.
+In the future we might want to use both TCAS RA and Combined Control  jointly.</p>
+</dd></dl>
+
+<dl class="class">
+<dt>
+<tt class="descname">TCASRAResponsePlot(name='', array=masked_array(data = [],</tt></dt>
+<dt>
+<tt class="descname">mask = False,</tt></dt>
+<dt>
+<tt class="descname">fill_value = 1e+20)</tt></dt>
+<dt>
+<tt class="descname">, frequency=1, offset=0, data_type=None, *args, **kwargs)</tt></dt>
+<dd><p>A dummy node to generate detailed time series plots of TCAS events to PROFILE_REPORTS_PATH.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASAltitudeExceedance">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASAltitudeExceedance</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASAltitudeExceedance" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV of vertical speed relative to Standard Response.  Currently assumes 1 hz params.</p>
+</dd></dl>
+
+<dl class="class">
+<dt>
+<tt class="descname">TCASRAStandardResponse(name='', array=masked_array(data = [],</tt></dt>
+<dt>
+<tt class="descname">mask = False,</tt></dt>
+<dt>
+<tt class="descname">fill_value = 1e+20)</tt></dt>
+<dt>
+<tt class="descname">, frequency=1, offset=0, data_type=None, *args, **kwargs)</tt></dt>
+<dd><p>Time series of TCAS RA standard response in terms of vertial speed.</p>
+<p>Standard pilot response is a vertical speed curve to use as a reference.
+Source for standard response time and acceleration:</p>
 <blockquote>
-<div>In the future we might want to use both TCAS RA and Combined Control  jointly.</div></blockquote>
+<div><dl class="docutils">
+<dt>&#8220;Introduction to TCAS II version 7.1&#8221; </dt>
+<dd>Federal Aviation Administration, February 28, 2011.  p. 39</dd>
+</dl>
+</div></blockquote>
+<p>Initial response time = 5 sec    (2.5 sec for reversal)</p>
+<p>Acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)</p>
+<p>Maintain advised fpm until end.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASCombinedControl">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASCombinedControl</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASCombinedControl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reports all Combined Control state changes, masked or not, to support event review</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASUpAdvisory">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASUpAdvisory</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASUpAdvisory" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports all Up Advisory state changes, masked or not, to support event review.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASDownAdvisory">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASDownAdvisory</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASDownAdvisory" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports all Down Advisory state changes, masked or not, to support event review.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASVerticalControl">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASVerticalControl</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASVerticalControl" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports all Vertical Control state changes, masked or not, to support event review.
+Advisory is one of the following types: Crossing, Reversal, Increase, Maintain.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASSensitivityAtTCASRAStart">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASSensitivityAtTCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASSensitivityAtTCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports TCAS Sensitivity Mode at the start of each RA.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASSensitivity">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASSensitivity</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASSensitivity" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports all TCAS Sensitivity Model state changes, masked or not, to support event review.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.VerticalSpeedAtTCASRAStart">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">VerticalSpeedAtTCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.VerticalSpeedAtTCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports Vertical Speed at the start of each RA.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.AltitudeQNHAtTCASRAStart">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">AltitudeQNHAtTCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.AltitudeQNHAtTCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports Altitude QNH at the start of each RA.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.PitchAtTCASRAStart">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">PitchAtTCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.PitchAtTCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports Pitch Angle at the start of each RA.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.RollAtTCASRAStart">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">RollAtTCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.RollAtTCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports Roll Angle at the start of each RA.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.AirspeedAtTCASRAStart">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">AirspeedAtTCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.AirspeedAtTCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports Airspeed at the start of each RA.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.AutopilotAtTCASRAStart">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">AutopilotAtTCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.AutopilotAtTCASRAStart" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports Autopilot status  at the start of each RA.
+&#8216;1=Engaged, otherwise Disengaged</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tcas_profile.TCASRATimeToAPDisengage">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASRATimeToAPDisengage</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASRATimeToAPDisengage" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV reports to disengage Autopilot after a TCAS RA.
+Adapted from FDS &#8216;TCAS RA To AP Disengaged Duration&#8217;, but uses TCAS RA Start to define events.</p>
 </dd></dl>
 
 </div>

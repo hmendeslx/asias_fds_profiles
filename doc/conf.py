@@ -18,7 +18,7 @@ import sys, os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0,'/devel/asias/keithc/foqa_evolution/asias_fds/asias_fds_profiles')
-sys.path.insert(0,'/devel/asias/keithc/foqa_evolution/asias_fds/asias_fds_profiles/doc')
+#sys.path.insert(0,'/devel/asias/keithc/foqa_evolution/asias_fds/asias_fds_profiles/doc')
 #os.path.abspath('../.'))
 
 # -- General configuration -----------------------------------------------------
@@ -150,10 +150,10 @@ html_static_path = ['_static']
 #html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-#html_show_sourcelink = True
+html_show_sourcelink = True
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
-#html_show_sphinx = True
+html_show_sphinx = True
 
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
 #html_show_copyright = True

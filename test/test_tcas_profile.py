@@ -31,6 +31,8 @@ from tcas_profile import (
     TCASUpAdvisory,
     TCASDownAdvisory,
     TCASVerticalControl,
+    
+    TCASSensitivityAtTCASRAStart,
 )
 
 ### fixtures
@@ -191,7 +193,6 @@ class TestTCASDownAdvisory(unittest.TestCase):
         self.assertEqual(opts, expected)        
     
     def test_derive(self):
-        #4: 'Up Advisory Corrective',
         tcas_down = M( 'TCASDownAdvisory', 
                               array=np.ma.array([0,0,1,0,0]),
                               values_mapping=values_mapping, frequency=1., offset=0.)
@@ -200,7 +201,6 @@ class TestTCASDownAdvisory(unittest.TestCase):
         node = TCASDownAdvisory()
         node.derive(tcas_down)
         self.assertEqual(expected,  node)
-
     
     
 class TestTCASVerticalControl(unittest.TestCase):
@@ -210,7 +210,6 @@ class TestTCASVerticalControl(unittest.TestCase):
         self.assertEqual(opts, expected)        
     
     def test_derive(self):
-        #4: 'Up Advisory Corrective',
         tcas_vert = M( 'TCAS Vertical Control', 
                               array=np.ma.array([0,0,1,0,0]),
                               values_mapping=values_mapping, frequency=1., offset=0.)
@@ -221,6 +220,29 @@ class TestTCASVerticalControl(unittest.TestCase):
         self.assertEqual(expected,  node)
 
 
+class TestTCASSensitivityAtTCASRAStart(unittest.TestCase):
+    def test_can_operate(self):
+        expected = [('TCAS Sensitivity Level', 'TCAS RA Start')]
+        opts =TCASSensitivityAtTCASRAStart.get_operational_combinations()
+        self.assertEqual(opts, expected)
+    
+    def test_derive(self):
+        tcas_sens = M( 'TCAS Sensitivity Level', 
+                              array=np.ma.array([0,0,1,0,0]),
+                              values_mapping=values_mapping, frequency=.25, offset=0.)
+        start = KTI( items= [KeyTimeInstance(index=2,   name='TCAS RA Start'),  ] )
+        node = TCASSensitivityAtTCASRAStart()
+        node.derive(tcas_sens, start)
+        
+        expected = [ KeyPointValue(index=2, value=1, name='TCAS RA Start Pilot Sensitivity Mode'), ]
+        self.assertEqual(expected,  node)
+        
+"""
+class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
+    name = 'TCAS RA Start Pilot Sensitivity Mode'
+    def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra=KTI('TCAS RA Start')):
+        self.create_kpvs_at_ktis(tcas_sens.array, ra)
+"""
         
 if __name__=='__main__':
     print 'testing tcas profile'

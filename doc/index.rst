@@ -55,6 +55,39 @@ tcas_profile
 
 .. autoclass:: TCASCtlSections
 
+.. autoclass:: TCASRAResponsePlot
+
+.. autoclass:: TCASAltitudeExceedance
+
+.. autoclass:: TCASRAStandardResponse
+
+.. autoclass:: TCASCombinedControl
+
+.. autoclass:: TCASUpAdvisory
+
+.. autoclass:: TCASDownAdvisory
+
+.. autoclass:: TCASVerticalControl
+
+.. autoclass:: TCASSensitivityAtTCASRAStart
+
+.. autoclass:: TCASSensitivity
+
+.. autoclass:: VerticalSpeedAtTCASRAStart
+
+.. autoclass:: AltitudeQNHAtTCASRAStart
+
+.. autoclass:: PitchAtTCASRAStart
+
+.. autoclass:: RollAtTCASRAStart
+
+.. autoclass:: AirspeedAtTCASRAStart
+
+.. autoclass:: AutopilotAtTCASRAStart
+
+.. autoclass:: TCASRATimeToAPDisengage
+
+
 ua_profile
 ==========
 TBD
