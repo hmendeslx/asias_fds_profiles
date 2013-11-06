@@ -17,7 +17,8 @@ import sys, os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0,'/devel/asias/keithc/foqa_evolution/asias_fds/asias_fds_profiles')
+sys.path.insert(0, os.path.abspath('./..'))
+#sys.path.insert(0,'/devel/asias/keithc/foqa_evolution/asias_fds/asias_fds_profiles')
 #sys.path.insert(0,'/devel/asias/keithc/foqa_evolution/asias_fds/asias_fds_profiles/doc')
 #os.path.abspath('../.'))
 

@@ -69,9 +69,9 @@ tcas_profile
 
 .. autoclass:: TCASVerticalControl
 
-.. autoclass:: TCASSensitivityAtTCASRAStart
-
 .. autoclass:: TCASSensitivity
+
+.. autoclass:: TCASSensitivityAtTCASRAStart
 
 .. autoclass:: VerticalSpeedAtTCASRAStart
 
