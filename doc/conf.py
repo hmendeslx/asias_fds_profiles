@@ -33,7 +33,8 @@ class Mock(object):
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
-    MOCK_MODULES = ['numpy', 'numpy.ma','scipy', 'h5py']
+    MOCK_MODULES = ['numpy', 'numpy.ma','scipy', 'h5py','analysis_engine.node',
+                                    'analysis_engine.library',  'analyser_custom_settings', 'staged_helper','fds_oracle']
     for mod_name in MOCK_MODULES:
         sys.modules[mod_name] = Mock()
 
