@@ -161,8 +161,31 @@ VELOCITY_SPEED_MAP = {
     # Airbus
     ('A320', None): A320,
 }   
+
+class B747 (VelocitySpeed):
+    '''
+    Velocity speed tables for Boeing 747.
+    '''
+    interpolate = True
+    source = 'Boeing AFM 12/10/80 via ALPA FOIA request'
+    weight_unit = 't'
+    tables = {
+        'vref': {
+            'weight': (160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360),
+                  30: (111, 114, 118, 121, 124, 127, 130, 134, 137, 140, 143, 146, 150, 153, 157, 159, 162, 165, 168, 171, 174),
+                  25: (116, 120, 123, 126, 130, 133, 136, 140, 143, 146, 149, 153, 156, 159, 163, 166, 169, 173, 176, 179, 183),
+                },
+    }
+    
+VELOCITY_SPEED_MAP = {
+    # Boeing
+    ('B747', None): B747,
+}  
+
 def get_vspeed_map_mitre(series=None, family=None, engine_series=None, engine_type=None):
     '''
+    Adapted from FDS 'get_vspeed_map' function
+    
     Accessor for fetching velocity speed table classes.
 
     :param series: An aircraft series e.g. B737-300
