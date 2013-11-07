@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-TCAS Profile is a draft set of measures intended to roughly parallel existing ASIAS TCAS metrics.
+TCAS Profile is a draft set of measures intended to roughly parallel existing ASIAS TCAS RA metrics.
 The profile also includes a number of nodes intended to help in diagnosing individual events, as
 an aid to both development and quality control.
 """
