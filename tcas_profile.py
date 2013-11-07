@@ -350,7 +350,7 @@ class TCASAltitudeExceedance(KeyPointValueNode):
 
 class TCASRAStandardResponse(DerivedParameterNode):
     """
-        Time series of TCAS RA standard response in terms of vertial speed.
+        Time series of TCAS RA standard response in terms of vertical speed.
     
         Standard pilot response is a vertical speed curve to use as a reference.
         Source for standard response time and acceleration:
@@ -522,7 +522,7 @@ class TCASVerticalControl(KeyPointValueNode):
                                  
 class TCASSensitivity(KeyPointValueNode):
     """
-    KPV reports all TCAS Sensitivity Model state changes, masked or not, to support event review.
+    KPV reports all TCAS Sensitivity Mode state changes, masked or not, to support event review.
     """
     name = 'TCAS Pilot Sensitivity Mode'
     def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra_sections=S('TCAS RA Sections') ):
@@ -608,7 +608,7 @@ class AutopilotAtTCASRAStart(KeyPointValueNode):
 
 class TCASRATimeToAPDisengage(KeyPointValueNode):
     """
-    KPV reports to disengage Autopilot after a TCAS RA.
+    KPV reports time to disengage Autopilot after a TCAS RA.
     Adapted from FDS 'TCAS RA To AP Disengaged Duration', but uses TCAS RA Start to define events.
     """
     name = 'TCAS RA Time To AP Disengage'
