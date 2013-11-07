@@ -19,6 +19,7 @@ from analysis_engine.node import (
     KeyTimeInstance, Section, S
 )
 
+import tcas_profile as tcas
 from tcas_profile import (
     TCASCtlSections,
     TCASRAStart,
@@ -30,10 +31,14 @@ from tcas_profile import (
     
     TCASUpAdvisory,
     TCASDownAdvisory,
-    TCASVerticalControl,
-    
-    TCASSensitivityAtTCASRAStart,
+    TCASVerticalControl,    
 )
+'''
+TCASSensitivityAtTCASRAStart,
+VerticalSpeedAtTCASRAStart,
+AltitudeQNHAtTCASRAStart,
+'''
+
 
 ### fixtures
 _ra  =np.ma.hstack( [np.ma.zeros(16), np.ma.ones(4), np.ma.zeros(16)] )
@@ -223,26 +228,144 @@ class TestTCASVerticalControl(unittest.TestCase):
 class TestTCASSensitivityAtTCASRAStart(unittest.TestCase):
     def test_can_operate(self):
         expected = [('TCAS Sensitivity Level', 'TCAS RA Start')]
-        opts =TCASSensitivityAtTCASRAStart.get_operational_combinations()
+        opts =tcas.TCASSensitivityAtTCASRAStart.get_operational_combinations()
         self.assertEqual(opts, expected)
     
     def test_derive(self):
+        '''[[[State]]]
+          0 = SL = 0 (Automatic)
+          1 = SL = 1 (Standby)
+          2 = SL = 2 (TA Only)
+          3 = SL = 3
+          ...
+        '''
+        values_mapping = {  0: '0',    1: '1', }
         tcas_sens = M( 'TCAS Sensitivity Level', 
                               array=np.ma.array([0,0,1,0,0]),
                               values_mapping=values_mapping, frequency=.25, offset=0.)
         start = KTI( items= [KeyTimeInstance(index=2,   name='TCAS RA Start'),  ] )
-        node = TCASSensitivityAtTCASRAStart()
+        node = tcas.TCASSensitivityAtTCASRAStart()
         node.derive(tcas_sens, start)
         
         expected = [ KeyPointValue(index=2, value=1, name='TCAS RA Start Pilot Sensitivity Mode'), ]
         self.assertEqual(expected,  node)
+
+
+class TestVerticalSpeedAtTCASRAStart(unittest.TestCase):
+    def setUp(self):
+        self.klass =tcas.VerticalSpeedAtTCASRAStart
+    
+    def test_can_operate(self):
+        self.assertEqual(self.klass.get_operational_combinations(),[('Vertical Speed', 'TCAS RA Start')])
+
+    def test_derive(self):
+        start = KTI( items= [KeyTimeInstance(index=2,   name='TCAS RA Start'),  ] )
+        vspd = P( 'Vertical Speed', array=np.ma.arange(10)*10.0, frequency=1., offset=0.)
+        expected = [KeyPointValue(index=2, value=20.0, name='TCAS RA Start Vertical Speed'),]
+
+        k = self.klass()
+        k.derive(vspd, start)
+        self.assertEqual(k, expected)
+
+
+class TestAltitudeQNHAtTCASRAStart(unittest.TestCase):
+    def setUp(self):
+        self.klass =tcas.AltitudeQNHAtTCASRAStart
+    
+    def test_can_operate(self):
+        self.assertEqual(self.klass.get_operational_combinations(),[('Altitude QNH', 'TCAS RA Start')])
+
+    def test_derive(self):
+        start = KTI( items= [KeyTimeInstance(index=2,   name='TCAS RA Start'),  ] )
+        alt = P( 'Altitude QNH', array=np.ma.arange(10)*10.0, frequency=1., offset=0.)
+        expected = [KeyPointValue(index=2, value=20.0, name='TCAS RA Start Altitude QNH'),]
+
+        k = self.klass()
+        k.derive(alt, start)
+        self.assertEqual(k, expected)
         
-"""
-class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
-    name = 'TCAS RA Start Pilot Sensitivity Mode'
-    def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra=KTI('TCAS RA Start')):
-        self.create_kpvs_at_ktis(tcas_sens.array, ra)
-"""
+        
+class TestPitchAtTCASRAStart(unittest.TestCase):
+    def setUp(self):
+        self.klass =tcas.PitchAtTCASRAStart
+    
+    def test_can_operate(self):
+        self.assertEqual(self.klass.get_operational_combinations(),[('Pitch', 'TCAS RA Start')])
+
+    def test_derive(self):
+        start = KTI( items= [KeyTimeInstance(index=2,   name='TCAS RA Start'),  ] )
+        param = P( 'Pitch', array=np.ma.arange(10)*10.0, frequency=1., offset=0.)
+        expected = [KeyPointValue(index=2, value=20.0, name='TCAS RA Start Pitch'),]
+
+        k = self.klass()
+        k.derive(param, start)
+        self.assertEqual(k, expected)
+
+        
+class TestRollAtTCASRAStart(unittest.TestCase):
+    def setUp(self):
+        self.klass =tcas.RollAtTCASRAStart
+    
+    def test_can_operate(self):
+        self.assertEqual(self.klass.get_operational_combinations(),[('Roll', 'TCAS RA Start')])
+
+    def test_derive(self):
+        start = KTI( items= [KeyTimeInstance(index=2,   name='TCAS RA Start'),  ] )
+        param = P( 'Roll', array=np.ma.arange(10)*10.0, frequency=1., offset=0.)
+        expected = [KeyPointValue(index=2, value=20.0, name='TCAS RA Start Roll Abs'),]
+
+        k = self.klass()
+        k.derive(param, start)
+        self.assertEqual(k, expected)
+        
+        
+class TestAirspeedAtTCASRAStart(unittest.TestCase):
+    def setUp(self):
+        self.klass =tcas.AirspeedAtTCASRAStart
+    
+    def test_can_operate(self):
+        self.assertEqual(self.klass.get_operational_combinations(),[('Airspeed', 'TCAS RA Start')])
+
+    def test_derive(self):
+        start = KTI( items= [KeyTimeInstance(index=2,   name='TCAS RA Start'),  ] )
+        param = P( 'Airspeed', array=np.arange(100,200,10)*1.0, frequency=1., offset=0.)
+        expected = [KeyPointValue(index=2, value=120.0, name='TCAS RA Start Airspeed'),]
+        k = self.klass()
+        k.derive(param, start)
+        self.assertEqual(k, expected)
+
+
+class TestAutopilotAtTCASRAStart(unittest.TestCase):
+    def setUp(self):
+        self.klass =tcas.AutopilotAtTCASRAStart
+    
+    def test_can_operate(self):
+        self.assertEqual(self.klass.get_operational_combinations(),[('AP Engaged', 'TCAS RA Start')])
+
+    def test_derive(self):
+        start = KTI( items= [KeyTimeInstance(index=2,   name='TCAS RA Start'),  ] )
+        param = P( 'AP Engaged', array=np.ma.arange(10)*1.0, frequency=1., offset=0.)
+        expected = [KeyPointValue(index=2, value=2.0, name='TCAS RA Start Autopilot'),]
+        k = self.klass()
+        k.derive(param, start)
+        self.assertEqual(k, expected)
+        
+
+class TestTCASRATimeToAPDisengage(unittest.TestCase):
+    def setUp(self):
+        self.klass =tcas.TCASRATimeToAPDisengage
+    
+    def test_can_operate(self):
+        self.assertEqual(self.klass.get_operational_combinations(),[('AP Disengaged Selection', 'TCAS RA Sections')])
+
+    def test_derive(self):
+        ra_sections = buildsections('TCAS RA Sections', [2,4] )
+        ap_dis = KTI( items= [KeyTimeInstance(index=3,   name='AP Disengaged Selection'),       ])
+        expected = [KeyPointValue(index=3, value=1.0, name='TCAS RA Time To AP Disengage'),]
+        k = self.klass()
+        k.derive(ap_dis, ra_sections)
+        self.assertEqual(k, expected)
+        
         
 if __name__=='__main__':
     print 'testing tcas profile'
