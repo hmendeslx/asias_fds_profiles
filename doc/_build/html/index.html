@@ -66,6 +66,8 @@ set of test flights, and should not be regarded as fully mature.</p>
 All the major node types are covered.  The emphasis is on manually constructing extremely simple measures, to
 better understand how the node types are structured.</p>
 <p>There are also a couple of examples where the node is derived from other measures, which is the more typical case.</p>
+<div class="section" id="example-flight-attributes">
+<h2>Example Flight Attributes<a class="headerlink" href="#example-flight-attributes" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="example_profile.SimpleAttribute">
 <em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimpleAttribute</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimpleAttribute" title="Permalink to this definition">¶</a></dt>
@@ -89,6 +91,9 @@ start_datetime is used only to provide a dependency, which appears to be a requi
 a dictionary that was assigned by staged_helper.</p>
 </dd></dl>
 
+</div>
+<div class="section" id="example-ktis">
+<h2>Example KTIs<a class="headerlink" href="#example-ktis" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="example_profile.SimpleKTI">
 <em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimpleKTI</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimpleKTI" title="Permalink to this definition">¶</a></dt>
@@ -101,6 +106,9 @@ a dictionary that was assigned by staged_helper.</p>
 <dd><p>manually built KTI, illustrating how KeyTimeInstanceNode act like a list of KTI objects.</p>
 </dd></dl>
 
+</div>
+<div class="section" id="example-kpvs">
+<h2>Example KPVs<a class="headerlink" href="#example-kpvs" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="example_profile.SimpleKPV">
 <em class="property">class </em><tt class="descclassname">example_profile.</tt><tt class="descname">SimpleKPV</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#example_profile.SimpleKPV" title="Permalink to this definition">¶</a></dt>
@@ -128,6 +136,9 @@ a KTI based on TCAS Combined Control during the Airborne phase of flight.</p>
 It covers the time interval from beginning of &#8216;Approach&#8217; to beginning of &#8216;Final Approach&#8217;.</p>
 </dd></dl>
 
+</div>
+<div class="section" id="example-derived-time-series-parameter">
+<h2>Example Derived Time Series Parameter<a class="headerlink" href="#example-derived-time-series-parameter" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt>
 <tt class="descname">DistanceTravelledInAir(name='', array=masked_array(data = [],</tt></dt>
@@ -144,6 +155,7 @@ to store it to disk.</p>
 The calculation is limited to periods when the aircraft is not in the &#8216;Grounded&#8217; phase of flight.</p>
 </dd></dl>
 
+</div>
 </div>
 <div class="section" id="module-tcas_profile">
 <span id="tcas-profile"></span><h1>tcas_profile<a class="headerlink" href="#module-tcas_profile" title="Permalink to this headline">¶</a></h1>
@@ -464,7 +476,13 @@ Logic looks for recorded Vref, followed by an AFR Vref, followed by a lookup tab
 <li><a class="reference internal" href="#">Welcome to asias_fds_profile documentation</a><ul>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-example_profile">example_profile</a></li>
+<li><a class="reference internal" href="#module-example_profile">example_profile</a><ul>
+<li><a class="reference internal" href="#example-flight-attributes">Example Flight Attributes</a></li>
+<li><a class="reference internal" href="#example-ktis">Example KTIs</a></li>
+<li><a class="reference internal" href="#example-kpvs">Example KPVs</a></li>
+<li><a class="reference internal" href="#example-derived-time-series-parameter">Example Derived Time Series Parameter</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-tcas_profile">tcas_profile</a><ul>
 <li><a class="reference internal" href="#tcas-event-identification">TCAS Event Identification</a></li>
 <li><a class="reference internal" href="#event-review-and-diagnosis">Event Review and Diagnosis</a></li>

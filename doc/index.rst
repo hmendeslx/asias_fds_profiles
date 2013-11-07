@@ -25,16 +25,22 @@ example_profile
 .. automodule:: example_profile
 
 
+Example Flight Attributes
+-------------------------
 .. autoclass:: SimpleAttribute
 
 .. autoclass:: FileAttribute
 
 .. autoclass:: MydictAttribute
 
+Example KTIs
+------------
 .. autoclass:: SimpleKTI
 
 .. autoclass:: SimplerKTI
 
+Example KPVs
+------------
 .. autoclass:: SimpleKPV
 
 .. autoclass:: SimplerKPV
@@ -43,6 +49,8 @@ example_profile
 
 .. autoclass:: InitialApproach
 
+Example Derived Time Series Parameter
+-------------------------------------
 .. autoclass:: DistanceTravelledInAir
 
 
