@@ -50,17 +50,18 @@ tcas_profile
 ============
 .. automodule:: tcas_profile
 
+TCAS Event Identification
+-------------------------
 .. autoclass:: TCASRASections
 
 .. autoclass:: TCASRAStart
 
 .. autoclass:: TCASCtlSections
 
+
+Event Review and Diagnosis
+--------------------------
 .. autoclass:: TCASRAResponsePlot
-
-.. autoclass:: TCASAltitudeExceedance
-
-.. autoclass:: TCASRAStandardResponse
 
 .. autoclass:: TCASCombinedControl
 
@@ -72,6 +73,9 @@ tcas_profile
 
 .. autoclass:: TCASSensitivity
 
+
+Measures at start of TCAS RA
+----------------------------
 .. autoclass:: TCASSensitivityAtTCASRAStart
 
 .. autoclass:: VerticalSpeedAtTCASRAStart
@@ -86,7 +90,16 @@ tcas_profile
 
 .. autoclass:: AutopilotAtTCASRAStart
 
+
+Pilot Response
+--------------
 .. autoclass:: TCASRATimeToAPDisengage
+
+.. autoclass:: TCASAltitudeExceedance
+
+.. autoclass:: TCASRAStandardResponse
+
+
 
 
 ua_profile

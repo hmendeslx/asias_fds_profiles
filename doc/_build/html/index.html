@@ -150,6 +150,8 @@ The calculation is limited to periods when the aircraft is not in the &#8216;Gro
 <p>TCAS Profile is a draft set of measures intended to roughly parallel existing ASIAS TCAS metrics.
 The profile also includes a number of nodes intended to help in diagnosing individual events, as
 an aid to both development and quality control.</p>
+<div class="section" id="tcas-event-identification">
+<h2>TCAS Event Identification<a class="headerlink" href="#tcas-event-identification" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tcas_profile.TCASRASections">
 <em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASRASections</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASRASections" title="Permalink to this definition">¶</a></dt>
@@ -173,6 +175,9 @@ Currently we are relying primarily on &#8216;TCAS RA&#8217; instead of Combined 
 In the future we might want to use both TCAS RA and Combined Control  jointly.</p>
 </dd></dl>
 
+</div>
+<div class="section" id="event-review-and-diagnosis">
+<h2>Event Review and Diagnosis<a class="headerlink" href="#event-review-and-diagnosis" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt>
 <tt class="descname">TCASRAResponsePlot(name='', array=masked_array(data = [],</tt></dt>
@@ -183,35 +188,6 @@ In the future we might want to use both TCAS RA and Combined Control  jointly.</
 <dt>
 <tt class="descname">, frequency=1, offset=0, data_type=None, *args, **kwargs)</tt></dt>
 <dd><p>A dummy node to generate detailed time series plots of TCAS events to PROFILE_REPORTS_PATH.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="tcas_profile.TCASAltitudeExceedance">
-<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASAltitudeExceedance</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASAltitudeExceedance" title="Permalink to this definition">¶</a></dt>
-<dd><p>KPV of vertical speed relative to Standard Response.  Currently assumes 1 hz params.</p>
-</dd></dl>
-
-<dl class="class">
-<dt>
-<tt class="descname">TCASRAStandardResponse(name='', array=masked_array(data = [],</tt></dt>
-<dt>
-<tt class="descname">mask = False,</tt></dt>
-<dt>
-<tt class="descname">fill_value = 1e+20)</tt></dt>
-<dt>
-<tt class="descname">, frequency=1, offset=0, data_type=None, *args, **kwargs)</tt></dt>
-<dd><p>Time series of TCAS RA standard response in terms of vertial speed.</p>
-<p>Standard pilot response is a vertical speed curve to use as a reference.
-Source for standard response time and acceleration:</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>&#8220;Introduction to TCAS II version 7.1&#8221; </dt>
-<dd>Federal Aviation Administration, February 28, 2011.  p. 39</dd>
-</dl>
-</div></blockquote>
-<p>Initial response time = 5 sec    (2.5 sec for reversal)</p>
-<p>Acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)</p>
-<p>Maintain advised fpm until end.</p>
 </dd></dl>
 
 <dl class="class">
@@ -245,6 +221,9 @@ Advisory is one of the following types: Crossing, Reversal, Increase, Maintain.<
 <dd><p>KPV reports all TCAS Sensitivity Model state changes, masked or not, to support event review.</p>
 </dd></dl>
 
+</div>
+<div class="section" id="measures-at-start-of-tcas-ra">
+<h2>Measures at start of TCAS RA<a class="headerlink" href="#measures-at-start-of-tcas-ra" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tcas_profile.TCASSensitivityAtTCASRAStart">
 <em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASSensitivityAtTCASRAStart</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASSensitivityAtTCASRAStart" title="Permalink to this definition">¶</a></dt>
@@ -288,6 +267,9 @@ Advisory is one of the following types: Crossing, Reversal, Increase, Maintain.<
 &#8216;1=Engaged, otherwise Disengaged</p>
 </dd></dl>
 
+</div>
+<div class="section" id="pilot-response">
+<h2>Pilot Response<a class="headerlink" href="#pilot-response" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tcas_profile.TCASRATimeToAPDisengage">
 <em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASRATimeToAPDisengage</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASRATimeToAPDisengage" title="Permalink to this definition">¶</a></dt>
@@ -295,6 +277,36 @@ Advisory is one of the following types: Crossing, Reversal, Increase, Maintain.<
 Adapted from FDS &#8216;TCAS RA To AP Disengaged Duration&#8217;, but uses TCAS RA Start to define events.</p>
 </dd></dl>
 
+<dl class="class">
+<dt id="tcas_profile.TCASAltitudeExceedance">
+<em class="property">class </em><tt class="descclassname">tcas_profile.</tt><tt class="descname">TCASAltitudeExceedance</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#tcas_profile.TCASAltitudeExceedance" title="Permalink to this definition">¶</a></dt>
+<dd><p>KPV of vertical speed relative to Standard Response.  Currently assumes 1 hz params.</p>
+</dd></dl>
+
+<dl class="class">
+<dt>
+<tt class="descname">TCASRAStandardResponse(name='', array=masked_array(data = [],</tt></dt>
+<dt>
+<tt class="descname">mask = False,</tt></dt>
+<dt>
+<tt class="descname">fill_value = 1e+20)</tt></dt>
+<dt>
+<tt class="descname">, frequency=1, offset=0, data_type=None, *args, **kwargs)</tt></dt>
+<dd><p>Time series of TCAS RA standard response in terms of vertial speed.</p>
+<p>Standard pilot response is a vertical speed curve to use as a reference.
+Source for standard response time and acceleration:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>&#8220;Introduction to TCAS II version 7.1&#8221; </dt>
+<dd>Federal Aviation Administration, February 28, 2011.  p. 39</dd>
+</dl>
+</div></blockquote>
+<p>Initial response time = 5 sec    (2.5 sec for reversal)</p>
+<p>Acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)</p>
+<p>Maintain advised fpm until end.</p>
+</dd></dl>
+
+</div>
 </div>
 <div class="section" id="module-UA_profile">
 <span id="ua-profile"></span><h1>ua_profile<a class="headerlink" href="#module-UA_profile" title="Permalink to this headline">¶</a></h1>
@@ -453,7 +465,13 @@ Logic looks for recorded Vref, followed by an AFR Vref, followed by a lookup tab
 </ul>
 </li>
 <li><a class="reference internal" href="#module-example_profile">example_profile</a></li>
-<li><a class="reference internal" href="#module-tcas_profile">tcas_profile</a></li>
+<li><a class="reference internal" href="#module-tcas_profile">tcas_profile</a><ul>
+<li><a class="reference internal" href="#tcas-event-identification">TCAS Event Identification</a></li>
+<li><a class="reference internal" href="#event-review-and-diagnosis">Event Review and Diagnosis</a></li>
+<li><a class="reference internal" href="#measures-at-start-of-tcas-ra">Measures at start of TCAS RA</a></li>
+<li><a class="reference internal" href="#pilot-response">Pilot Response</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-UA_profile">ua_profile</a><ul>
 <li><a class="reference internal" href="#derived-parameters">Derived Parameters</a></li>
 <li><a class="reference internal" href="#ils-approaches">ILS Approaches</a></li>
