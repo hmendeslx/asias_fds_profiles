@@ -51,7 +51,8 @@
 Flight Data Services FlightDataAnalyzer.</p>
 <p>Each module defines a themed set of measures, some of which correspond to
 ASIAS benchmarks.</p>
-<p>As of Fall 2013, the profiles have been used in evaluation and testing against a limited
+<p>As of Fall 2013, the profiles have been used in evaluation and testing against a
+limited
 set of test flights, and should not be regarded as fully mature.</p>
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
@@ -295,9 +296,141 @@ Adapted from FDS &#8216;TCAS RA To AP Disengaged Duration&#8217;, but uses TCAS 
 </dd></dl>
 
 </div>
-<div class="section" id="ua-profile">
-<h1>ua_profile<a class="headerlink" href="#ua-profile" title="Permalink to this headline">¶</a></h1>
-<p>TBD</p>
+<div class="section" id="module-UA_profile">
+<span id="ua-profile"></span><h1>ua_profile<a class="headerlink" href="#module-UA_profile" title="Permalink to this headline">¶</a></h1>
+<p>UA Profile is a draft set of measures to roughly parallel existing ASIAS UA
+metrics. The profile includes KPVs capturing instability across several
+criteria, including: ILS approach deviations (Glideslope, Localizer), airspeed
+deviations (high and low relative to Vref), high vertical speed, low power, late
+configuration changes (Gear and Flaps).</p>
+<div class="section" id="derived-parameters">
+<h2>Derived Parameters<a class="headerlink" href="#derived-parameters" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt>
+<tt class="descname">AirspeedReferenceVref(name='', array=masked_array(data = [],</tt></dt>
+<dt>
+<tt class="descname">mask = False,</tt></dt>
+<dt>
+<tt class="descname">fill_value = 1e+20)</tt></dt>
+<dt>
+<tt class="descname">, frequency=1, offset=0, data_type=None, *args, **kwargs)</tt></dt>
+<dd><p>Derived parameter used to create a time series of Vref values
+Logic looks for recorded Vref, followed by an AFR Vref, followed by a lookup table cross referencing gross weight and flap position</p>
+</dd></dl>
+
+</div>
+<div class="section" id="ils-approaches">
+<h2>ILS Approaches<a class="headerlink" href="#ils-approaches" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="UA_profile.GlideslopeDeviation5Sec1000To500FtMax">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">GlideslopeDeviation5Sec1000To500FtMax</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.GlideslopeDeviation5Sec1000To500FtMax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine maximum deviation from the glideslope between 1000 and 500 ft.</p>
+<p>## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.GlideslopeDeviation5Sec500To200FtMax">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">GlideslopeDeviation5Sec500To200FtMax</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.GlideslopeDeviation5Sec500To200FtMax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine maximum deviation from the glideslope between 500 and 200 ft.</p>
+<p>## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.GlideslopeDeviation5Sec1000To500FtMin">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">GlideslopeDeviation5Sec1000To500FtMin</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.GlideslopeDeviation5Sec1000To500FtMin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine minimium deviation from the glideslope between 1000 and 500 ft.</p>
+<p>## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.GlideslopeDeviation5Sec500To200FtMin">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">GlideslopeDeviation5Sec500To200FtMin</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.GlideslopeDeviation5Sec500To200FtMin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine minimium deviation from the glideslope between 500 and 200 ft.</p>
+<p>## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.LocalizerDeviation5Sec1000To500FtMax">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">LocalizerDeviation5Sec1000To500FtMax</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.LocalizerDeviation5Sec1000To500FtMax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine maximum absolute deviation from the localizer between 1000 and 500 ft.</p>
+<p>## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.LocalizerDeviation5Sec500To50FtMax">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">LocalizerDeviation5Sec500To50FtMax</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.LocalizerDeviation5Sec500To50FtMax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine maximum absolute deviation from the localizer between 500 and 50 ft.</p>
+<p>## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range</p>
+</dd></dl>
+
+</div>
+<div class="section" id="speeds">
+<h2>Speeds<a class="headerlink" href="#speeds" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="UA_profile.AirspeedRelativeMax3Sec1000to500ftHAT">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">AirspeedRelativeMax3Sec1000to500ftHAT</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.AirspeedRelativeMax3Sec1000to500ftHAT" title="Permalink to this definition">¶</a></dt>
+<dd><p>CAS-Vref 1000 to 500 ft HAT</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.AirspeedRelativeMax3Sec500to50ftHAT">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">AirspeedRelativeMax3Sec500to50ftHAT</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.AirspeedRelativeMax3Sec500to50ftHAT" title="Permalink to this definition">¶</a></dt>
+<dd><p>CAS-Vref 500 to 50 ft HAT</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.AirspeedRelativeMin3Sec1000to500ftHAT">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">AirspeedRelativeMin3Sec1000to500ftHAT</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.AirspeedRelativeMin3Sec1000to500ftHAT" title="Permalink to this definition">¶</a></dt>
+<dd><p>CAS-Vref 1000 to 500 ft HAT</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.AirspeedRelativeMin3Sec500to50ftHAT">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">AirspeedRelativeMin3Sec500to50ftHAT</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.AirspeedRelativeMin3Sec500to50ftHAT" title="Permalink to this definition">¶</a></dt>
+<dd><p>CAS-Vref 500 to 50 ft HAT</p>
+</dd></dl>
+
+</div>
+<div class="section" id="vertical-speed">
+<h2>Vertical Speed<a class="headerlink" href="#vertical-speed" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="UA_profile.RateOfDescent3Sec1000To500FtMax">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">RateOfDescent3Sec1000To500FtMax</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.RateOfDescent3Sec1000To500FtMax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Max rate of descent from 1000 to 500 ft HAT</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.RateOfDescent3Sec500To50FtMax">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">RateOfDescent3Sec500To50FtMax</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.RateOfDescent3Sec500To50FtMax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Max rate of descent from 500 to 50 ft HAT</p>
+</dd></dl>
+
+</div>
+<div class="section" id="engine-speed">
+<h2>Engine Speed<a class="headerlink" href="#engine-speed" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="UA_profile.EngN15Sec1000To500FtMin">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">EngN15Sec1000To500FtMin</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.EngN15Sec1000To500FtMin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Min engine N1 from 1000 to 500 ft HAT</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="UA_profile.EngN15Sec500To50FtMin">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">EngN15Sec500To50FtMin</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.EngN15Sec500To50FtMin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Min engine N1 from 500 to 50 ft HAT</p>
+</dd></dl>
+
+</div>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<p>Flap position change is embedded in FDS&#8217; base kpv values, named &#8220;AltitudeAtLastFlapChangeBeforeTouchdown&#8221;</p>
+<dl class="class">
+<dt id="UA_profile.AltitudeAtLastGearDownBeforeTouchdown">
+<em class="property">class </em><tt class="descclassname">UA_profile.</tt><tt class="descname">AltitudeAtLastGearDownBeforeTouchdown</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#UA_profile.AltitudeAtLastGearDownBeforeTouchdown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Altitude at last gear movement</p>
+</dd></dl>
+
+</div>
 </div>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
@@ -321,7 +454,15 @@ Adapted from FDS &#8216;TCAS RA To AP Disengaged Duration&#8217;, but uses TCAS 
 </li>
 <li><a class="reference internal" href="#module-example_profile">example_profile</a></li>
 <li><a class="reference internal" href="#module-tcas_profile">tcas_profile</a></li>
-<li><a class="reference internal" href="#ua-profile">ua_profile</a></li>
+<li><a class="reference internal" href="#module-UA_profile">ua_profile</a><ul>
+<li><a class="reference internal" href="#derived-parameters">Derived Parameters</a></li>
+<li><a class="reference internal" href="#ils-approaches">ILS Approaches</a></li>
+<li><a class="reference internal" href="#speeds">Speeds</a></li>
+<li><a class="reference internal" href="#vertical-speed">Vertical Speed</a></li>
+<li><a class="reference internal" href="#engine-speed">Engine Speed</a></li>
+<li><a class="reference internal" href="#configuration">Configuration</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 

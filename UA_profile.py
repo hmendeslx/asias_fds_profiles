@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Example profile module: defines a set of measures that run against Analyzer base data.
+UA Profile is a draft set of measures to roughly parallel existing ASIAS UA
+metrics. The profile includes KPVs capturing instability across several
+criteria, including: ILS approach deviations (Glideslope, Localizer), airspeed
+deviations (high and low relative to Vref), high vertical speed, low power, late
+configuration changes (Gear and Flaps).
+"""
+
+
+"""
+UA profile module: defines a set of measures that run against Analyzer base data.
 @author: SRANSOHOFF, MAY 2013
 
    
@@ -214,7 +223,10 @@ def get_vspeed_map_mitre(series=None, family=None, engine_series=None, engine_ty
 
 
 class AirspeedReferenceVref(DerivedParameterNode):
-    '''a simple derived parameter = a new time series'''
+    """
+    Derived parameter used to create a time series of Vref values
+    Logic looks for recorded Vref, followed by an AFR Vref, followed by a lookup table cross referencing gross weight and flap position
+    """
     name = 'Vref (Recorded then Lookup)'
     units = 'kts'
 
@@ -315,7 +327,9 @@ Sustained UA metrics
 '''                            
 
 class AirspeedRelativeMin3Sec1000to500ftHAT (KeyPointValueNode):
-    '''CAS-Vref 1000 to 500 ft HAT'''
+    """
+    CAS-Vref 1000 to 500 ft HAT
+    """
     name = 'Airspeed Relative 1000 to 500 ft HAT Min (3 sec)'
     units = 'kts'
     
@@ -343,7 +357,9 @@ class AirspeedRelativeMin3Sec1000to500ftHAT (KeyPointValueNode):
 
               
 class AirspeedRelativeMax3Sec1000to500ftHAT (KeyPointValueNode):
-    '''CAS-Vref 1000 to 500 ft HAT'''
+    """
+    CAS-Vref 1000 to 500 ft HAT
+    """
     name = 'Airspeed Relative 1000 to 500 ft HAT Max (3 sec)'
     units = 'kts'
     
@@ -370,7 +386,9 @@ class AirspeedRelativeMax3Sec1000to500ftHAT (KeyPointValueNode):
                 return
 
 class AirspeedRelativeMax3Sec500to50ftHAT (KeyPointValueNode):
-    '''CAS-Vref 500 to 50 ft HAT'''
+    """
+    CAS-Vref 500 to 50 ft HAT
+    """
     name = 'Airspeed Relative 500 to 50 ft HAT Max (3 sec)'
     units = 'kts'
     
@@ -397,8 +415,10 @@ class AirspeedRelativeMax3Sec500to50ftHAT (KeyPointValueNode):
             else:
                 return
             
-class AirspeedRelativeMin3sec500to50ftHAT (KeyPointValueNode):
-    '''CAS-Vref 500 to 50 ft HAT'''
+class AirspeedRelativeMin3Sec500to50ftHAT (KeyPointValueNode):
+    """
+    CAS-Vref 500 to 50 ft HAT
+    """
     name = 'Airspeed Relative 500 to 50 ft HAT Min (3 sec)'
     units = 'kts'
 
@@ -426,11 +446,11 @@ class AirspeedRelativeMin3sec500to50ftHAT (KeyPointValueNode):
 
 
 class GlideslopeDeviation5Sec1000To500FtMax(KeyPointValueNode):
-    '''
+    """
     Determine maximum deviation from the glideslope between 1000 and 500 ft.
     
     ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
-    '''
+    """
 
     name = 'Glideslope Deviation 1000 To 500 Ft Max (5 sec)'
     units = 'dots'
@@ -461,11 +481,11 @@ class GlideslopeDeviation5Sec1000To500FtMax(KeyPointValueNode):
             return
         
 class GlideslopeDeviation5Sec500To200FtMax(KeyPointValueNode):
-    '''
+    """
     Determine maximum deviation from the glideslope between 500 and 200 ft.
     
     ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
-    '''
+    """
 
     name = 'Glideslope Deviation 500 To 200 Ft Max (5 sec)'
     units = 'dots'
@@ -498,11 +518,11 @@ class GlideslopeDeviation5Sec500To200FtMax(KeyPointValueNode):
 
 #        
 class GlideslopeDeviation5Sec1000To500FtMin(KeyPointValueNode):
-    '''
+    """
     Determine minimium deviation from the glideslope between 1000 and 500 ft.
     
     ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
-    '''
+    """
 
     name = 'Glideslope Deviation 1000 To 500 Ft Min (5 sec)'
     units = 'dots'
@@ -533,11 +553,11 @@ class GlideslopeDeviation5Sec1000To500FtMin(KeyPointValueNode):
             return
         
 class GlideslopeDeviation5Sec500To200FtMin(KeyPointValueNode):
-    '''
+    """
     Determine minimium deviation from the glideslope between 500 and 200 ft.
     
     ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
-    '''
+    """
 
     name = 'Glideslope Deviation 500 To 200 Ft Min (5 sec)'
     units = 'dots'
@@ -569,11 +589,11 @@ class GlideslopeDeviation5Sec500To200FtMin(KeyPointValueNode):
             return
 
 class LocalizerDeviation5Sec500To50FtMax(KeyPointValueNode):
-    '''
+    """
     Determine maximum absolute deviation from the localizer between 500 and 50 ft.
     
     ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
-    '''
+    """
 
     name = 'Localizer Deviation 500 To 50 Ft Max (5 sec)'
     units = 'dots'
@@ -605,11 +625,11 @@ class LocalizerDeviation5Sec500To50FtMax(KeyPointValueNode):
             return
         
 class LocalizerDeviation5Sec1000To500FtMax(KeyPointValueNode):
-    '''
+    """
     Determine maximum absolute deviation from the localizer between 1000 and 500 ft.
     
     ## MITRE edit: ILS established assumes that the aircraft was aligned then deviated, we want the full range
-    '''
+    """
 
     name = 'Localizer Deviation 1000 To 500 Ft Max (5 sec)'
     units = 'dots'
@@ -641,8 +661,9 @@ class LocalizerDeviation5Sec1000To500FtMax(KeyPointValueNode):
             return
 
 class RateOfDescent3Sec1000To500FtMax(KeyPointValueNode):
-    '''
-    '''
+    """
+    Max rate of descent from 1000 to 500 ft HAT
+    """
     name = 'Rate of Descent 1000 to 500 ft Max (3 sec)'
     units = 'fpm'
 
@@ -662,8 +683,9 @@ class RateOfDescent3Sec1000To500FtMax(KeyPointValueNode):
                 )
 
 class RateOfDescent3Sec500To50FtMax(KeyPointValueNode):
-    '''
-    '''
+    """
+    Max rate of descent from 500 to 50 ft HAT
+    """
     name = 'Rate of Descent 500 to 50 ft Max (3 sec)'
     units = 'fpm'
 
@@ -684,8 +706,9 @@ class RateOfDescent3Sec500To50FtMax(KeyPointValueNode):
                 )
 
 class EngN15Sec500To50FtMin(KeyPointValueNode):
-    '''
-    '''
+    """
+    Min engine N1 from 500 to 50 ft HAT
+    """
 
     name = 'Eng N1 500 To 50 Ft Min (5 sec)'
     units = '%'
@@ -706,8 +729,9 @@ class EngN15Sec500To50FtMin(KeyPointValueNode):
                 )
         
 class EngN15Sec1000To500FtMin(KeyPointValueNode):
-    '''
-    '''
+    """
+    Min engine N1 from 1000 to 500 ft HAT
+    """
 
     name = 'Eng N1 1000 To 500 Ft Min (5 sec)'
     units = '%'
@@ -728,8 +752,9 @@ class EngN15Sec1000To500FtMin(KeyPointValueNode):
                 )
         
 class AltitudeAtLastGearDownBeforeTouchdown(KeyPointValueNode):
-    '''
-    '''
+    """
+    Altitude at last gear movement
+    """
 
     units = 'ft'
 
@@ -805,7 +830,7 @@ def test_sql_ua_all():
     query = """select file_path from fds_flight_record 
                  where 
                     file_repository='REPO'
-                    and rownum < 100
+                    and rownum < 10
                     """.replace('REPO',repo)
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
@@ -865,11 +890,11 @@ def pkl_check():
 if __name__=='__main__':
     ###CONFIGURATION ######################################################### 
     FILE_REPOSITORY, FILES_TO_PROCESS = test_sql_ua_all() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    PROFILE_NAME = 'UA_parallel_21OCT13' + '-'+ socket.gethostname()   
-    COMMENT = 'UA full run'
+    PROFILE_NAME = 'UA_nonparallel_7NOV13' + '-'+ socket.gethostname()   
+    COMMENT = 'UA test run'
     LOG_LEVEL = 'WARNING'       
     MAKE_KML_FILES = False
-    IS_PARALLEL = True
+    IS_PARALLEL = False
     ###############################################################
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
