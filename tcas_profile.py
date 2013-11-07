@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-TCAS Profile
+TCAS Profile is a draft set of measures intended to roughly parallel existing ASIAS TCAS metrics.
+The profile also includes a number of nodes intended to help in diagnosing individual events, as
+an aid to both development and quality control.
+"""
+
+"""
 @author: KEITHC, May 2013
 
 TCAS Elements
@@ -55,26 +60,11 @@ import fds_oracle
 ### Section 2: measure definitions -- attributes, KTI, phase/section, KPV, DerivedParameter
 #      DerivedParameters will cause a set of hdf5 files to be generated.
 
-class TCASCtlSections(FlightPhaseNode):  # OLD VERSION 
-    '''TCAS RA sections that pass quality filtering '''
-    name = 'TCAS Ctl Sections'
-    def derive(self, tcas=M('TCAS Combined Control') ): #, off=KTI('Liftoff'), td=KTI('Touchdown') ):
-        ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
-        ras_slices = library.runs_of_ones(ras_local)
-        if ras_slices:
-            for ra_slice in ras_slices:                    
-                self.create_phase( ra_slice )    
-        return
-
-
-class TCASRAStart(KeyTimeInstanceNode):
-    name = 'TCAS RA Start'
-    def derive(self, ra_sections=S('TCAS RA Sections')):
-        for s in ra_sections:
-            self.create_kti(s.start_edge)
-
-
 class TCASRASections(FlightPhaseNode):
+    """
+       Sections of filtered TCAS RA alerts.  Generally we use this rather than TCAS Combined Control to id alerts.  
+           Currently filters are based on event duration and event timing relative to liftoff and touchdown.
+     """ 
     name = 'TCAS RA Sections'
     def derive(self, ra=M('TCAS RA'), off=KTI('Liftoff'), td=KTI('Touchdown') ):
         ras_local = ra.array
@@ -83,18 +73,43 @@ class TCASRASections(FlightPhaseNode):
         # put together runs separated by short drop-outs        
         ras_slicesb = library.slices_remove_small_gaps(ras_slices, time_limit=2, hz=1)        
         for ra_slice in ras_slicesb:                    
+            print 'unfiltered ra section', ra_slice
             is_post_liftoff =  (ra_slice.start - off.get_first().index) > 10 
             is_pre_touchdown = (td.get_first().index - ra_slice.start ) > 10 
             duration = ra_slice.stop-ra_slice.start                     
             if is_post_liftoff and is_pre_touchdown  and 3.0 <= duration < 300.0: #ignore if too short to do anything
-                #print ' ra section', ra_slice
+                print 'filtered ra section', ra_slice
                 self.create_phase( ra_slice )    
         return
 
 
+class TCASRAStart(KeyTimeInstanceNode):
+    '''A KTI delineating the start of each TCAS RA section.'''
+    name = 'TCAS RA Start'
+    def derive(self, ra_sections=S('TCAS RA Sections')):
+        for s in ra_sections:
+            self.create_kti(s.start_edge)
+
+
+class TCASCtlSections(FlightPhaseNode):
+    """
+       TCAS RA  Combined Control sections. 
+       Currently we are relying primarily on 'TCAS RA' instead of Combined Control to ID RAs.
+       In the future we might want to use both TCAS RA and Combined Control  jointly.
+    """
+    name = 'TCAS Ctl Sections'
+    def derive(self, tcas=M('TCAS Combined Control') ): 
+        ras_local = tcas.array.any_of('Drop Track', 'Altitude Lost', 'Up Advisory Corrective','Down Advisory Corrective')                    
+        ras_slices = library.runs_of_ones(ras_local)
+        if ras_slices:
+            for ra_slice in ras_slices:                    
+                self.create_phase( ra_slice )    
+        return
+
 
 def tcas_vert_spd_up(tcas_up, vert_speed, tcas_vert):
-    '''determine the change in vertical speed commanded  by a tcas ra 
+    '''
+    determine the change in vertical speed commanded  by a tcas ra 
             if TCAS combined control is Up Advisory
     '''
     upcmd = tcas_up
@@ -263,9 +278,11 @@ def ra_plot(array_dict, tcas_ra_array, tcas_ctl_array, tcas_up_array, tcas_down_
     return plt
     
 
-#"""
+#'''
 class TCASRAResponsePlot(DerivedParameterNode):
-    '''dummy node for diagnostic plotting '''
+    """
+    A dummy node to generate detailed time series plots of TCAS events to PROFILE_REPORTS_PATH.
+    """
     name = "TCAS RA Response Plot"
     def derive(self, std_vert_spd = P('TCAS RA Standard Response'), 
                      tcas_ra   =  M('TCAS RA'),                      
@@ -291,19 +308,27 @@ class TCASRAResponsePlot(DerivedParameterNode):
                       tstart, tend
                       )  
             #helper.show_plot(plt)                      
-            fname = filename.value.replace('.hdf5', '.png')
-            helper.save_plot(plt, fname)
+
+            filebase = os.path.basename(filename.value)                                            
+            fname = settings.PROFILE_REPORTS_PATH+ filebase.replace('.hdf5', '.png')            
+
+            plt.draw()
+            plt.savefig(fname, transparent=False ) #, bbox_inches="tight")
+            plt.close()
         self.array = std_vert_spd.array
-        print 'finishing', filename
+        print 'finishing', fname
         return
-#"""
+#'''
 
 class TCASAltitudeExceedance(KeyPointValueNode):
-    '''Actual vs Standard Response.  Assumes 1 hz params'''
+    """
+    KPV of vertical speed relative to Standard Response.  Currently assumes 1 hz params.
+    """
     name = 'TCAS RA Altitude Exceedance'
     def derive(self, ra_sections=S('TCAS RA Sections'),  tcas_ctl=M('TCAS Combined Control'),
                      tcas_up   =  M('TCAS Up Advisory'), tcas_down =  M('TCAS Down Advisory'), 
                      std=P('TCAS RA Standard Response'), vertspd=P('Vertical Speed') ):
+        print 'in Alt Exceed'
         for ra in ra_sections:
             exceedance=0
             deviation=0
@@ -318,21 +343,27 @@ class TCASAltitudeExceedance(KeyPointValueNode):
                 #print 't vert std DEV', t, vertspd.array[t], std.array[t], deviation
                 if deviation and deviation!=0:
                     exceedance += deviation
-            #print 'Alt Exceed', exceedance
+            print 'Alt Exceed', exceedance
             exceedance = exceedance / 60.0 # min to sec
             self.create_kpv(ra.start_edge, exceedance)
 
 
 class TCASRAStandardResponse(DerivedParameterNode):
-    '''standard pilot response -- a vertical speed curve to use as a reference
-        source for standard response time and acceleration:
+    """
+        Time series of TCAS RA standard response in terms of vertial speed.
+    
+        Standard pilot response is a vertical speed curve to use as a reference.
+        Source for standard response time and acceleration:
+        
                "Introduction to TCAS II version 7.1" 
                 Federal Aviation Administration, February 28, 2011.  p. 39
             
-        initial response time = 5 sec    (2.5 sec for reversal)
-        acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)
-        maintain advised fpm until end
-    '''
+        Initial response time = 5 sec    (2.5 sec for reversal)
+        
+        Acceleration to advised vert speed = 8.0 ft^2  (reversal=11.2 ft/sec^2)
+        
+        Maintain advised fpm until end.
+    """
     name = 'TCAS RA Standard Response'
     units='fpm'
     
@@ -410,17 +441,18 @@ def change_indexes(myarray):
 
 
 class TCASCombinedControl(KeyPointValueNode):
+    """Reports all Combined Control state changes, masked or not, to support event review"""    
     ''' find tcas_ctl.array.data value changes (first diff)
         for each change point return a kpv using the control name. States:
           ( No Advisory, Clear of Conflict, Drop Track, Altitude Lost,
             Up Advisory Corrective, Down Advisory Corrective, Preventive )            
     '''
     units = 'state'    
-    def derive(self, tcas_ctl=M('TCAS Combined Control'), ra_sections = S('TCAS RA Sections') ):
+    def derive(self, tcas_ctl=M('TCAS Combined Control')):    #, ra_sections = S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_ctl.array.data) #returns array index
         for cp in _change_points:
             _value = tcas_ctl.array.data[cp]
-            if tcas_ctl.array.mask[cp]:
+            if tcas_ctl.array[cp] == np.ma.masked:
                 _name = 'TCAS Combined Control|masked'
             else:
                 _name = 'TCAS Combined Control|' + tcas_ctl.array[cp]
@@ -431,14 +463,17 @@ class TCASCombinedControl(KeyPointValueNode):
 
 ###TODO try np.ediff1d(), use airborne or add simple phase to kpv
 class TCASUpAdvisory(KeyPointValueNode):
+    """
+    KPV reports all Up Advisory state changes, masked or not, to support event review.
+    """
     units = 'state'        
-    def derive(self, tcas_up=M('TCAS Up Advisory'), ra_sections=S('TCAS RA Sections') ):
+    def derive(self, tcas_up=M('TCAS Up Advisory') ):
         _change_points = change_indexes(tcas_up.array.data) #returns array index
         print 'up', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_up.array.data[cp]
-            if tcas_up.array.mask[cp]:
+            if tcas_up.array[cp] == np.ma.masked:
                 _name = 'TCAS Up Advisory|masked'
             else:
                 _name = 'TCAS Up Advisory|' + tcas_up.array[cp]
@@ -447,14 +482,17 @@ class TCASUpAdvisory(KeyPointValueNode):
 
 
 class TCASDownAdvisory(KeyPointValueNode):
+    """
+    KPV reports all Down Advisory state changes, masked or not, to support event review.
+    """
     units = 'state'    
-    def derive(self, tcas_down=M('TCAS Down Advisory'), ra_sections = S('TCAS RA Sections') ):
+    def derive(self, tcas_down=M('TCAS Down Advisory')):
         _change_points = change_indexes(tcas_down.array.data) #returns array index
         print 'down', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_down.array.data[cp]
-            if tcas_down.array.mask[cp]:
+            if tcas_down.array[cp] == np.ma.masked:
                 _name = 'TCAS Down Advisory|masked'
             else:
                 _name = 'TCAS Down Advisory|' + tcas_down.array[cp]
@@ -463,20 +501,18 @@ class TCASDownAdvisory(KeyPointValueNode):
             
             
 class TCASVerticalControl(KeyPointValueNode):
-    '''Advisory is one of the following types
-           Crossing
-           Reversal
-           Increase
-           Maintain    
-    '''
+    """
+    KPV reports all Vertical Control state changes, masked or not, to support event review.
+    Advisory is one of the following types: Crossing, Reversal, Increase, Maintain.    
+    """
     units = 'state'    
-    def derive(self, tcas_vrt=M('TCAS Vertical Control'), ra_sections = S('TCAS RA Sections')):
+    def derive(self, tcas_vrt=M('TCAS Vertical Control')):
         _change_points = change_indexes(tcas_vrt.array.data) #returns array index
         print 'vert', _change_points
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_vrt.array.data[cp]
-            if tcas_vrt.array.mask[cp]:
+            if tcas_vrt.array[cp] == np.ma.masked:
                 _name = 'TCAS Vertical Control|masked'
             else:
                 _name = 'TCAS Vertical Control|' + tcas_vrt.array[cp]
@@ -484,26 +520,35 @@ class TCASVerticalControl(KeyPointValueNode):
             self.append(kpv)
 
                                  
-class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
-    name = 'TCAS RA Start Pilot Sensitivity Mode'
-    def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra=KTI('TCAS RA Start')):
-        self.create_kpvs_at_ktis(tcas_sens.array, ra)
-
-
 class TCASSensitivity(KeyPointValueNode):
+    """
+    KPV reports all TCAS Sensitivity Model state changes, masked or not, to support event review.
+    """
     name = 'TCAS Pilot Sensitivity Mode'
     def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra_sections=S('TCAS RA Sections') ):
         _change_points = change_indexes(tcas_sens.array.data) #returns array index
         for cp in _change_points:
             _value = tcas_sens.array.data[cp]
-            if tcas_sens.array.mask[cp]:
+            if tcas_sens.array[cp] == np.ma.masked:
                 _name = 'TCAS Sensitivity|masked'
             else:
                 _name = 'TCAS Sensitivity|' + tcas_sens.array[cp]
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
 
+
+class TCASSensitivityAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports TCAS Sensitivity Mode at the start of each RA.
+    """
+    name = 'TCAS RA Start Pilot Sensitivity Mode'
+    def derive(self, tcas_sens=P('TCAS Sensitivity Level'), ra=KTI('TCAS RA Start')):
+        self.create_kpvs_at_ktis(tcas_sens.array, ra)
+
 class VerticalSpeedAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Vertical Speed at the start of each RA.
+    """
     units = 'fpm'
     name = 'TCAS RA Start Vertical Speed'
     def derive(self, vrt_spd=P('Vertical Speed'), ra=KTI('TCAS RA Start')):
@@ -511,6 +556,9 @@ class VerticalSpeedAtTCASRAStart(KeyPointValueNode):
 
 
 class AltitudeQNHAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Altitude QNH at the start of each RA.
+    """
     units = 'fpm'
     name = 'TCAS RA Start Altitude QNH'
     def derive(self, vrt_spd=P('Altitude QNH'), ra=KTI('TCAS RA Start')):
@@ -518,6 +566,9 @@ class AltitudeQNHAtTCASRAStart(KeyPointValueNode):
 
 
 class PitchAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Pitch Angle at the start of each RA.
+    """
     units = 'deg'
     name = 'TCAS RA Start Pitch'
     def derive(self, pitch=P('Pitch'), ra=KTI('TCAS RA Start')):
@@ -525,6 +576,9 @@ class PitchAtTCASRAStart(KeyPointValueNode):
 
 
 class RollAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Roll Angle at the start of each RA.
+    """
     units = 'deg'
     name = 'TCAS RA Start Roll Abs'
     def derive(self, roll=P('Roll'), ra=KTI('TCAS RA Start')):
@@ -532,6 +586,9 @@ class RollAtTCASRAStart(KeyPointValueNode):
 
 
 class AirspeedAtTCASRAStart(KeyPointValueNode):
+    """
+    KPV reports Airspeed at the start of each RA.
+    """
     units = 'kts'
     name = 'TCAS RA Start Airspeed'
     def derive(self, airspeed=P('Airspeed'), ra=KTI('TCAS RA Start')):
@@ -539,7 +596,10 @@ class AirspeedAtTCASRAStart(KeyPointValueNode):
 
 
 class AutopilotAtTCASRAStart(KeyPointValueNode):
-    '''1=Engaged, otherwise Disengaged'''
+    """
+    KPV reports Autopilot status  at the start of each RA.
+    '1=Engaged, otherwise Disengaged
+    """
     name = 'TCAS RA Start Autopilot'
     def derive(self, ap=P('AP Engaged'), ra=KTI('TCAS RA Start')):
         #print 'AUTOPILOT'
@@ -547,7 +607,10 @@ class AutopilotAtTCASRAStart(KeyPointValueNode):
 
 
 class TCASRATimeToAPDisengage(KeyPointValueNode):
-    '''adapted from FDS 'TCAS RA To AP Disengaged Duration', but uses TCAS RA Start'''
+    """
+    KPV reports to disengage Autopilot after a TCAS RA.
+    Adapted from FDS 'TCAS RA To AP Disengaged Duration', but uses TCAS RA Start to define events.
+    """
     name = 'TCAS RA Time To AP Disengage'
     units = 's'
     def derive(self, ap_offs=KTI('AP Disengaged Selection'), ras=S('TCAS RA Sections') ):
@@ -567,7 +630,7 @@ def tiny_test():
     input_dir  = settings.BASE_DATA_PATH + 'tiny_test/'
     print input_dir
     files_to_process = glob.glob(os.path.join(input_dir, '*.hdf5'))
-    repo='keith PC'
+    repo='linux'
     return repo, files_to_process
 
 
@@ -586,9 +649,10 @@ def ra_sfo_sweep():
     files_to_process = fds_oracle.flight_record_filepaths(query)
     return repo, files_to_process
 
+
 def ra_all_sweep():
     '''check all flights for 'TCAS RA' to capture additional RAs    '''
-    repo = 'central'
+    repo = 'linux'
     query="""select distinct f.file_path 
                 from fds_flight_record f 
                  where  f.file_repository='REPO' 
@@ -615,20 +679,39 @@ def ra_redo():
             group by f.file_path
             """
     files_to_process = fds_oracle.flight_record_filepaths(query)
-    #files_to_process =  [ f for f in files_to_process if ('N563JB' in f)]
     return repo, files_to_process
 
 
+def ra_quickcheck():
+    """an ez to find but incomplete set of RAs for use in testing"""
+    repo = 'linux'
+    query="""select distinct f.file_path 
+                from fds_flight_record f join fds_kpv kpv 
+                  on kpv.file_repository=f.file_repository and kpv.base_file_path=f.base_file_path
+                 where f.file_repository='REPO' 
+                   and f.base_file_path is not null
+                   and f.dest_icao='KSFO'
+                   and kpv.name='TCAS RA Reaction Delay'
+                """.replace('REPO',repo)
+    files_to_process = fds_oracle.flight_record_filepaths(query)[:4]
+    return repo, files_to_process
+
+    
+
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    PROFILE_NAME = 'tcas_keith'  + '-'+ socket.gethostname()   
-    FILE_REPOSITORY, FILES_TO_PROCESS = ra_redo() #ra_all_sweep() #ra_measure_set_central() #ra_measure_set_sfo() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
-    COMMENT   = 'recalc all using series TCAS RA instead of Combined Control'
-    LOG_LEVEL = 'WARNING'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
+    PROFILE_NAME = 'tcas_chk'  + '-'+ socket.gethostname()   
+    FILE_REPOSITORY, FILES_TO_PROCESS = ra_quickcheck() #tiny_test() #ra_redo() #ra_all_sweep() #ra_measure_set_central() #ra_measure_set_sfo() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
+    COMMENT   = 'quick check'
+    LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
     MAKE_KML_FILES=False    # Run times are much slower when KML is True
     ###########################################################################
     
     module_names = [ os.path.basename(__file__).replace('.py','') ] #helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
-    helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, COMMENT, MAKE_KML_FILES, FILE_REPOSITORY )
+    status = helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, 
+                                                COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
+                                                save_oracle=True, mortal=True)
 
+    print status
+    print 'done'

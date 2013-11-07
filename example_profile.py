@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Example profile module: defines a set of measures that run against
-FDS FlightDataAnalyzer base data
-@author: KEITHC, April 2013
+example_profile defines a set of measure nodes that run against FDS FlightDataAnalyzer base data.
+All the major node types are covered.  The emphasis is on manually constructing extremely simple measures, to
+better understand how the node types are structured.  
+
+There are also a couple of examples where the node is derived from other measures, which is the more typical case.
 """
+#@author: KEITHC, started April 2013
+
 ### Section 1: dependencies (see FlightDataAnalyzer source files for additional options)
 import time
 import os, glob, socket
+import numpy as np
 from analysis_engine.node import ( A,   FlightAttributeNode,               # one of these per flight. mostly arrival and departure stuff
                                    App, ApproachNode,                      # per approach
                                    P,   DerivedParameterNode,              # time series with continuous values 
@@ -33,35 +38,41 @@ import fds_oracle
 ### Section 2: measure definitions -- attributes, KTI, phase/section, KPV, DerivedParameter
 #      DerivedParameters will cause a set of hdf5 files to be generated.
 class SimpleAttribute(FlightAttributeNode):
-    '''a simple FlightAttribute. start_datetime is used only to provide a dependency'''
-    #name = 'FDR Analysis Datetime'
+    """
+        A simple FlightAttribute constructed using the node.set_flight_attr() method. 
+        start_datetime is used only to provide a dependency, which appears to be a requirement.
+    """    
     def derive(self, start_datetime=A('Start Datetime')):
         self.set_flight_attr('Keith')
 
 
 class FileAttribute(FlightAttributeNode):
-    '''a simple FlightAttribute. tests availability of Filename'''
-    #name = 'FDR Analysis Datetime'
+    """
+        Tests availability of 'Myfile' filename attribute, 
+          assigned by staged_helper.py via the aircraft_info dictionary.
+     """    
     def derive(self, filename=A('Myfile')):
-        self.set_flight_attr(filename)
+        self.set_flight_attr(filename.value)
 
 
 class MydictAttribute(FlightAttributeNode):
-    '''a simple FlightAttribute. tests availability of Filename'''
-    #name = 'FDR Analysis Datetime'
+    '''a simple FlightAttribute to tests availability of Mydict, 
+       a dictionary that was assigned by staged_helper.'''
     def derive(self, mydict=A('Mydict')):
         mydict.value['testkey'] = [1,2,3]
-        self.set_flight_attr(mydict)
+        self.set_flight_attr(mydict.value)
 
              
 class SimpleKTI(KeyTimeInstanceNode):
-    '''a simple KTI. start_datetime is used only to provide a dependency'''
+    '''a simple KTI=Key Time Instance. start_datetime is used only to provide a dependency'''
+    name='Simple KTI'
     def derive(self, start_datetime=A('Start Datetime')):
         #print 'in SimpleKTI'
         self.create_kti(3)      
 
 class SimplerKTI(KeyTimeInstanceNode):
-    '''manually built KTI. start_datetime is used only to provide a dependency'''
+    '''manually built KTI, illustrating how KeyTimeInstanceNode act like a list of KTI objects.'''
+    name='My Simpler KTI'
     def derive(self, start_datetime=A('Start Datetime')):
         #print 'in SimpleKTI'
         kti=KeyTimeInstance(index=700., name='My Simpler KTI') #freq=1hz and offset=0 by default
@@ -69,12 +80,14 @@ class SimplerKTI(KeyTimeInstanceNode):
     
 class SimpleKPV(KeyPointValueNode):
     '''a simple KPV. start_datetime is used only to provide a dependency'''
+    name='Simple KPV'
     units='fpm'
     def derive(self, start_datetime=A('Start Datetime')):
         self.create_kpv(3.0, 999.9)
 
 class SimplerKPV(KeyPointValueNode):
-    '''just build it manually'''
+    '''manually built KPV, illustrating how KeyPointValueNode act like a list of KPV objects.
+       Also shows how a  KPV node can contain KPV objects with different names.'''
     units='deg'
     def derive(self, start_datetime=A('Start Datetime')):
         self.append(KeyPointValue(index=42.5, value=666.6,name='My Simpler KPV'))
@@ -82,19 +95,18 @@ class SimplerKPV(KeyPointValueNode):
         self.append(KeyPointValue(index=42.5, value=666.6,name='My Simpler KPV 2'))
 
 class TCASRAStart(KeyTimeInstanceNode):
-    '''Time of up or down advisory'''
+    '''Time of up or down advisory, 
+       a KTI based on TCAS Combined Control during the Airborne phase of flight.'''
     name = 'TCAS RA Start'
 
     def derive(self, tcas=M('TCAS Combined Control'), air=S('Airborne')):
         #print 'in TCASRAStart'
+        # we don't want to distinguish between up and down corrective in this context
+        dn_idx = np.ma.where(tcas.array == 'Down Advisory Corrective')
+        tcas.array[dn_idx] = 'Up Advisory Corrective'
+        
         self.create_ktis_on_state_change(
                     'Up Advisory Corrective',
-                    tcas.array,
-                    change='entering',
-                    phase=air
-                )                           
-        self.create_ktis_on_state_change(
-                    'Down Advisory Corrective',
                     tcas.array,
                     change='entering',
                     phase=air
@@ -103,18 +115,29 @@ class TCASRAStart(KeyTimeInstanceNode):
 
 
 class InitialApproach(FlightPhaseNode):
-    ''' a phase, derived from other phases.  S()=section=phase'''
+    """ 
+    A phase of derived from the 'Approach' and 'Final Appraoch' phases.  
+    It covers the time interval from beginning of 'Approach' to beginning of 'Final Approach'.
+    """
+    #S()=section=phase.
     def derive(self, approach=S('Approach'), final=S('Final Approach') ):
         if len(approach)>0 and len(final)>0:
             dbegin = min([d.start_edge for d in approach])
             dend   = min([d.start_edge for d in final]) #exclude approach time
             self.create_phase(slice( dbegin, dend ))
         return
+  
 
-   
-"""
-class DistanceTravelledInAirTemporary(DerivedParameterNode):
-    '''a simple derived parameter = a new time series'''
+class DistanceTravelledInAir(DerivedParameterNode):
+    """
+     A simple derived parameter, i.e. a derived time series.  
+     It may be used as an input to other calculations, but our current policy (Nov 2013) is not
+     to store it to disk.
+     
+     Exercises the FDS integrate() function to derive distance from airspeed.  
+     The calculation is limited to periods when the aircraft is not in the 'Grounded' phase of flight.
+    """
+    name='Distance Travelled In Air'
     units='nm'
     def derive(self, airspeed=P('Airspeed True'), grounded=S('Grounded') ):
         for section in grounded:                      # zero out travel on the ground
@@ -123,7 +146,7 @@ class DistanceTravelledInAirTemporary(DerivedParameterNode):
         adist      = integrate( repaired_array, airspeed.frequency, scale=1.0/3600.0 )
         self.array = adist
         #helper.aplot({'air dist':adist, 'airspd':airspeed.array})
-"""
+
 
 ### Section 3: pre-defined test sets
 def tiny_test():
