@@ -228,6 +228,21 @@ def fll_local():
     return repo, files_to_process
 
 
+def test_multifleet():
+    """test set to verify treatment of multiple fleet types"""
+    repo="linux"
+    query="""select file_path from fds_flight_record 
+           where fleet_series='B747-200' and file_repository='linux' and rownum<=10
+        union all
+        select file_path from fds_flight_record 
+           where fleet_series='CRJ 700' and file_repository='linux' and rownum<=10
+        union all
+        select file_path from fds_flight_record 
+           where fleet_series='A320-200' and file_repository='linux' and rownum<=10"""
+    files_to_process = fds_oracle.flight_record_filepaths(query)
+    return repo, files_to_process
+
+
 def test_kpv_range():
     '''run against flights with select kpv values.'''
     repo = 'linux'
@@ -250,12 +265,12 @@ def test_kpv_range():
     
 if __name__=='__main__':
     ###CONFIGURATION ######################################################### 
-    FILE_REPOSITORY, FILES_TO_PROCESS = test10() #test10() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
-    PROFILE_NAME = 'example parallel test' + '-'+ socket.gethostname()   
-    COMMENT = 'example parallel linux linspace'
+    FILE_REPOSITORY, FILES_TO_PROCESS = test_multifleet() #test10() #test10() #test_kpv_range()    #test10_opt() ##test_sql_jfk_local() #tiny_test() #test_sql_jfk() #test10() #tiny_test() #test10_shared #test_kpv_range() 
+    PROFILE_NAME = 'multifleet test' + '-'+ socket.gethostname()   
+    COMMENT = 'verify treatment of multiple fleet types'
     LOG_LEVEL = 'WARNING'       
     MAKE_KML_FILES = False
-    IS_PARALLEL = True
+    IS_PARALLEL = False
     ###############################################################
     module_names = [ os.path.basename(__file__).replace('.py','') ]#helper.get_short_profile_name(__file__)   # profile name = the name of this file
     print 'profile', PROFILE_NAME 
