@@ -312,4 +312,32 @@ To query job status and time by flight: (first engine only if parallel run)
           and profile='PROFILE' 
         order by run_time desc
         """.replace('2013-10-31 11:52:17',ts).replace('PROFILE',PROFILE_NAME)
+        
+    print """To review KPV, KTI and Phase calcs:
+=======================
+      select * from (
+        select 'KPV' as src, name, time_index, value, units, 
+               source_file, file_repository 
+        from fds_kpv
+         where file_repository='linux'
+           and profile='multifleet test-cockpit1.mitre.org' 
+           --and base_file_path is not null
+
+        union all
+        select 'KTI' as src, name, time_index, null value, 'index' as units, 
+                source_file, file_repository --,f.file_path --, kpv.name, kpv.value
+        from fds_kti 
+         where file_repository='linux'
+           and profile='multifleet test-cockpit1.mitre.org' 
+           --and base_file_path is not null
+        
+        union all
+        select 'Phase' as src, name, time_index, duration as value, 'duration' as units, 
+               source_file, file_repository 
+        from fds_phase
+         where file_repository='linux'
+           and profile='PROFILE' 
+        )
+        order by src,name, source_file
+        """.replace('PROFILE',PROFILE_NAME)
     print 'done'
