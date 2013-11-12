@@ -285,12 +285,31 @@ if __name__=='__main__':
         def eng_profile():
             import staged_helper
             reload(staged_helper)       
-            staged_helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, 
+            status = staged_helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, files_to_process, 
                                     COMMENT, MAKE_KML_FILES, file_repository, save_oracle=True, mortal=True )
+            return status
+        #engine_results = dview.apply(eng_profile) 
+        client = dview.client
+        print 'Engine Queue status', client.queue_status()
         engine_results = dview.apply(eng_profile) 
+        status = engine_results[0]                    
+        client.clear()
+        client.close()
+
     else:
-        helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, 
+        status=helper.run_profile(PROFILE_NAME , module_names, LOG_LEVEL, FILES_TO_PROCESS, 
                                 COMMENT, MAKE_KML_FILES, FILE_REPOSITORY, save_oracle=True, mortal=True )
 
     print 'time', time.time()-t0
+    print 'status', status
+    ts=status['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+    print """\n
+To query job status and time by flight: (first engine only if parallel run)
+=======================
+    select status, processing_seconds, source_file, profile, run_time
+         from fds_processing_time 
+        where run_time=to_date('2013-10-31 11:52:17','YYYY-MM-DD HH24:MI:SS')
+          and profile='PROFILE' 
+        order by run_time desc
+        """.replace('2013-10-31 11:52:17',ts).replace('PROFILE',PROFILE_NAME)
     print 'done'
