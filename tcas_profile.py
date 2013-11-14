@@ -713,5 +713,10 @@ if __name__=='__main__':
                                                 COMMENT, MAKE_KML_FILES, FILE_REPOSITORY,
                                                 save_oracle=True, mortal=True)
 
-    print status
+    print 'status', status
+    ts=status['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+    rpt_sql = helper.report_sql(PROFILE_NAME, status['timestamp'])
+    for k in rpt_sql.keys():
+        print "\n "+k +":"
+        print rpt_sql[k]
     print 'done'
