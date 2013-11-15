@@ -278,7 +278,7 @@ def ra_plot(array_dict, tcas_ra_array, tcas_ctl_array, tcas_up_array, tcas_down_
     return plt
     
 
-#'''
+'''
 class TCASRAResponsePlot(DerivedParameterNode):
     """
     A dummy node to generate detailed time series plots of TCAS events to PROFILE_REPORTS_PATH.
@@ -318,7 +318,7 @@ class TCASRAResponsePlot(DerivedParameterNode):
         self.array = std_vert_spd.array
         print 'finishing', fname
         return
-#'''
+'''
 
 class TCASAltitudeExceedance(KeyPointValueNode):
     """
@@ -452,7 +452,7 @@ class TCASCombinedControl(KeyPointValueNode):
         _change_points = change_indexes(tcas_ctl.array.data) #returns array index
         for cp in _change_points:
             _value = tcas_ctl.array.data[cp]
-            if tcas_ctl.array[cp] == np.ma.masked:
+            if np.ma.is_masked(tcas_ctl.array[cp]):
                 _name = 'TCAS Combined Control|masked'
             else:
                 _name = 'TCAS Combined Control|' + tcas_ctl.array[cp]
@@ -473,10 +473,13 @@ class TCASUpAdvisory(KeyPointValueNode):
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_up.array.data[cp]
-            if tcas_up.array[cp] == np.ma.masked:
+            if np.ma.is_masked( tcas_up.array[cp] ):
                 _name = 'TCAS Up Advisory|masked'
             else:
-                _name = 'TCAS Up Advisory|' + tcas_up.array[cp]
+                try:
+                    _name = 'TCAS Up Advisory|' + tcas_up.array[cp]
+                except:
+                    print 'blah'
             kpv = KeyPointValue(index=cp, value=_value, name=_name)
             self.append(kpv)
 
@@ -492,7 +495,7 @@ class TCASDownAdvisory(KeyPointValueNode):
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_down.array.data[cp]
-            if tcas_down.array[cp] == np.ma.masked:
+            if np.ma.is_masked( tcas_down.array[cp] ):
                 _name = 'TCAS Down Advisory|masked'
             else:
                 _name = 'TCAS Down Advisory|' + tcas_down.array[cp]
@@ -512,7 +515,7 @@ class TCASVerticalControl(KeyPointValueNode):
         for cp in _change_points:
             #pdb.set_trace()
             _value = tcas_vrt.array.data[cp]
-            if tcas_vrt.array[cp] == np.ma.masked:
+            if np.ma.is_masked(tcas_vrt.array[cp]):
                 _name = 'TCAS Vertical Control|masked'
             else:
                 _name = 'TCAS Vertical Control|' + tcas_vrt.array[cp]
@@ -529,7 +532,7 @@ class TCASSensitivity(KeyPointValueNode):
         _change_points = change_indexes(tcas_sens.array.data) #returns array index
         for cp in _change_points:
             _value = tcas_sens.array.data[cp]
-            if tcas_sens.array[cp] == np.ma.masked:
+            if np.ma.is_masked(tcas_sens.array[cp]):
                 _name = 'TCAS Sensitivity|masked'
             else:
                 _name = 'TCAS Sensitivity|' + tcas_sens.array[cp]
@@ -693,14 +696,14 @@ def ra_quickcheck():
                    and f.dest_icao='KSFO'
                    and kpv.name='TCAS RA Reaction Delay'
                 """.replace('REPO',repo)
-    files_to_process = fds_oracle.flight_record_filepaths(query)[:4]
+    files_to_process = fds_oracle.flight_record_filepaths(query)[:40]
     return repo, files_to_process
 
     
 
 if __name__=='__main__':
     ###CONFIGURATION options###################################################
-    PROFILE_NAME = 'tcas_chk'  + '-'+ socket.gethostname()   
+    PROFILE_NAME = 'TCAS' #  + '-'+ socket.gethostname()   
     FILE_REPOSITORY, FILES_TO_PROCESS = ra_quickcheck() #tiny_test() #ra_redo() #ra_all_sweep() #ra_measure_set_central() #ra_measure_set_sfo() #tiny_test() #ra_measure_set(FILE_REPOSITORY) #test_ra_flights(FILE_REPOSITORY)  #test10() #tiny_test() 
     COMMENT   = 'quick check'
     LOG_LEVEL = 'INFO'   #'WARNING' shows less, 'INFO' moderate, 'DEBUG' shows most detail
